@@ -39,6 +39,11 @@ export default function HomePage() {
         <HopLogo size="home" />
         <div className="home-selector__heading">
           <h1 id="experiences-title">Escolha uma experiência</h1>
+          <a className="home-about-link" href="#/sobre">
+            <span>Conheça o projeto</span>
+            <strong>Sobre a HOP</strong>
+            <span className="home-about-link__arrow" aria-hidden="true">↗</span>
+          </a>
         </div>
         <div className="row g-4 mt-4 w-100 justify-content-center">
           {experiences.map((experience) => (

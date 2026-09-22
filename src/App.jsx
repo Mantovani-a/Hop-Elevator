@@ -4,12 +4,14 @@ import HomePage from './pages/HomePage';
 const ClientPage = lazy(() => import('./pages/ClientPage'));
 const ControlPage = lazy(() => import('./pages/ControlPage'));
 const OperatorPage = lazy(() => import('./pages/OperatorPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 
 const routeMap = {
   '/': HomePage,
   '/control': ControlPage,
   '/operator': OperatorPage,
   '/client': ClientPage,
+  '/sobre': AboutPage,
 };
 
 const getCurrentRoute = () => window.location.hash.replace('#', '') || '/';
