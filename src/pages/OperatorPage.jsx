@@ -3,6 +3,7 @@ import OperatorShell from '../components/operator/OperatorShell';
 import OperatorStateMessage from '../components/operator/OperatorStateMessage';
 import NewOccurrenceAlert from '../components/operator/NewOccurrenceAlert';
 import OperatorShiftClosed from '../components/operator/OperatorShiftClosed';
+import Modal from '../components/Modal';
 import {
   buildOperatorOccurrence,
   createSimulatedOccurrence,
@@ -300,18 +301,20 @@ export default function OperatorPage({ route = '/operator' }) {
         onView={() => addSimulatedOccurrence(OPERATION_STATUS.TECHNICIAN_ASSIGNED)}
       />
       {shiftTransition === 'ending' && <div className="operator-shift-transition" role="status">Encerrando turno…</div>}
-      {endShiftConfirmationOpen && (
-        <div className="operator-end-shift-layer" role="dialog" aria-modal="true" aria-labelledby="end-shift-title">
-          <div className="operator-end-shift-modal">
-            <h2 id="end-shift-title">Você ainda possui demandas abertas</h2>
-            <p>Existem atendimentos vinculados ao seu turno que ainda não foram concluídos. Ao encerrar o turno, essas demandas continuarão registradas e poderão exigir acompanhamento da operação.</p>
-            <div className="d-flex flex-column flex-sm-row-reverse gap-2 mt-4">
-              <button className="btn btn-danger flex-fill" type="button" onClick={() => endShift(true)}>Encerrar turno mesmo assim</button>
-              <button className="btn btn-outline-secondary flex-fill" type="button" onClick={() => setEndShiftConfirmationOpen(false)}>Voltar ao trabalho</button>
-            </div>
-          </div>
+      <Modal
+        isOpen={endShiftConfirmationOpen}
+        onClose={() => setEndShiftConfirmationOpen(false)}
+        title="Você ainda possui demandas abertas"
+        titleId="end-shift-title"
+        className="operator-end-shift-modal"
+        layerClassName="operator-end-shift-layer"
+      >
+        <p>Existem atendimentos vinculados ao seu turno que ainda não foram concluídos. Ao encerrar o turno, essas demandas continuarão registradas e poderão exigir acompanhamento da operação.</p>
+        <div className="d-flex flex-column flex-sm-row-reverse gap-2 mt-4">
+          <button className="btn btn-danger flex-fill" type="button" onClick={() => endShift(true)}>Encerrar turno mesmo assim</button>
+          <button className="btn btn-outline-secondary flex-fill" type="button" onClick={() => setEndShiftConfirmationOpen(false)}>Voltar ao trabalho</button>
         </div>
-      )}
+      </Modal>
     </OperatorShell>
   );
 }

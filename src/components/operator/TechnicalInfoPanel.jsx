@@ -12,21 +12,21 @@ export default function TechnicalInfoPanel({ occurrence }) {
         <article className="p-3 border rounded" style={{ backgroundColor: 'var(--color-surface-hover)' }}>
           <h3 className="fs-6 mb-4">Elevador</h3>
           <dl className="d-grid gap-3 mb-0">
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Identificação</dt><dd className="fw-bold mb-0 text-break">{occurrence.elevator?.identification || 'Elevador'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Modelo demonstrativo</dt><dd className="fw-bold mb-0 text-break">{occurrence.elevator?.model || 'Modelo padrão'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Estabelecimento</dt><dd className="fw-bold mb-0 text-break">{occurrence.client?.name || 'Cliente'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Última manutenção</dt><dd className="fw-bold mb-0 text-break">{occurrence.elevator?.lastMaintenance ? formatDate(occurrence.elevator.lastMaintenance) : 'Recente'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Status registrado</dt><dd className="fw-bold mb-0 text-break"><StatusBadge value={occurrence.elevator?.status || 'operando'} /></dd></div>
+            <div><dt className="detail-item-label">Identificação</dt><dd className="detail-item-value">{occurrence.elevator?.identification || 'Elevador'}</dd></div>
+            <div><dt className="detail-item-label">Modelo demonstrativo</dt><dd className="detail-item-value">{occurrence.elevator?.model || 'Modelo padrão'}</dd></div>
+            <div><dt className="detail-item-label">Estabelecimento</dt><dd className="detail-item-value">{occurrence.client?.name || 'Cliente'}</dd></div>
+            <div><dt className="detail-item-label">Última manutenção</dt><dd className="detail-item-value">{occurrence.elevator?.lastMaintenance ? formatDate(occurrence.elevator.lastMaintenance) : 'Recente'}</dd></div>
+            <div><dt className="detail-item-label">Status registrado</dt><dd className="detail-item-value"><StatusBadge value={occurrence.elevator?.status || 'operando'} /></dd></div>
           </dl>
         </article>
         <article className="p-3 border rounded" style={{ backgroundColor: 'var(--color-surface-hover)' }}>
           <h3 className="fs-6 mb-4">Contexto da ocorrência</h3>
           <dl className="d-grid gap-3 mb-0">
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Código demonstrativo</dt><dd className="fw-bold mb-0 text-break">{occurrence.metadata?.diagnosis?.demoCode || 'MVP-DEMO'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Sistema relacionado</dt><dd className="fw-bold mb-0 text-break">{occurrence.metadata?.diagnosis?.system || 'Geral'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Registro</dt><dd className="fw-bold mb-0 text-break">{formatDateTime(occurrence.time)}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Origem dos dados</dt><dd className="fw-bold mb-0 text-break">{occurrence.metadata?.diagnosis?.source || 'Telemetria'}</dd></div>
-            <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Descrição do cliente</dt><dd className="fw-bold mb-0 text-break">{occurrence.metadata?.clientNotes || occurrence.description || 'Sem observações'}</dd></div>
+            <div><dt className="detail-item-label">Código demonstrativo</dt><dd className="detail-item-value">{occurrence.metadata?.diagnosis?.demoCode || 'MVP-DEMO'}</dd></div>
+            <div><dt className="detail-item-label">Sistema relacionado</dt><dd className="detail-item-value">{occurrence.metadata?.diagnosis?.system || 'Geral'}</dd></div>
+            <div><dt className="detail-item-label">Registro</dt><dd className="detail-item-value">{formatDateTime(occurrence.time)}</dd></div>
+            <div><dt className="detail-item-label">Origem dos dados</dt><dd className="detail-item-value">{occurrence.metadata?.diagnosis?.source || 'Telemetria'}</dd></div>
+            <div><dt className="detail-item-label">Descrição do cliente</dt><dd className="detail-item-value">{occurrence.metadata?.clientNotes || occurrence.description || 'Sem observações'}</dd></div>
           </dl>
         </article>
         <article className="p-3 border rounded" style={{ backgroundColor: 'var(--color-surface-hover)', gridColumn: '1 / -1' }}>

@@ -1,4 +1,5 @@
 import { getClientById, getElevatorById, getTechnicianById } from './mockData.js';
+import { OPERATION_STATUS } from './operationStatus.js';
 
 const NOTIFICATION_STORAGE_KEY = 'hop-notifications-v1';
 const NOTIFICATION_UPDATED_EVENT = 'hop-notifications-updated';
@@ -137,7 +138,7 @@ export const publishOperationNotifications = (previousState, nextState) => {
 
     const previousTechnicianId = previous.technicianId || previous.assignedTechnicianId || null;
     const nextTechnicianId = occurrence.technicianId || occurrence.assignedTechnicianId || null;
-    if (nextTechnicianId && nextTechnicianId !== previousTechnicianId && occurrence.workflowStatus !== 'Peça disponível') {
+    if (nextTechnicianId && nextTechnicianId !== previousTechnicianId && occurrence.workflowStatus !== OPERATION_STATUS.PART_AVAILABLE) {
       notifications.push(operatorNotification(
         occurrence,
         occurrence.priority?.classification === 'crítica' ? 'Você tem uma nova ocorrência crítica' : 'Nova ocorrência atribuída',
@@ -157,21 +158,21 @@ export const publishOperationNotifications = (previousState, nextState) => {
     if (previous.workflowStatus === occurrence.workflowStatus) return;
 
     switch (occurrence.workflowStatus) {
-      case 'Em deslocamento':
+      case OPERATION_STATUS.TRAVELING:
         notifications.push(clientNotification(
           occurrence,
           'Um operador está a caminho',
           `${context.technicianName} foi designado para o atendimento ${context.protocol}.`,
         ));
         break;
-      case 'Em manutenção':
+      case OPERATION_STATUS.MAINTENANCE:
         notifications.push(clientNotification(
           occurrence,
-          previous.workflowStatus === 'Retornando ao cliente' ? 'Atendimento retomado' : 'Manutenção iniciada',
+          previous.workflowStatus === OPERATION_STATUS.RETURNING_TO_CLIENT ? 'Atendimento retomado' : 'Manutenção iniciada',
           `${context.protocol} · ${context.elevatorName}`,
         ));
         break;
-      case 'Aguardando peça':
+      case OPERATION_STATUS.WAITING_PART:
         notifications.push(controlNotification(
           occurrence,
           'Ocorrência com necessidade de peças',
@@ -184,14 +185,14 @@ export const publishOperationNotifications = (previousState, nextState) => {
           `${context.protocol} permanece acompanhado pela central até a retomada.`,
         ));
         break;
-      case 'Aguardando suporte da central':
+      case OPERATION_STATUS.WAITING_SUPPORT:
         notifications.push(controlNotification(
           occurrence,
           'Suporte da central solicitado',
           `${context.protocol} · ${context.clientName}`,
         ));
         break;
-      case 'Peça disponível':
+      case OPERATION_STATUS.PART_AVAILABLE:
         notifications.push(operatorNotification(
           occurrence,
           'Peça disponível para retirada',
@@ -203,14 +204,14 @@ export const publishOperationNotifications = (previousState, nextState) => {
           `${context.protocol} recebeu peça e técnico para a próxima etapa.`,
         ));
         break;
-      case 'A caminho da retirada':
+      case OPERATION_STATUS.TRAVELING_TO_PICKUP:
         notifications.push(clientNotification(
           occurrence,
           'Atendimento retomado',
           `${context.technicianName} iniciou a retirada da peça para o atendimento.`,
         ));
         break;
-      case 'Resolvido':
+      case OPERATION_STATUS.RESOLVED:
         notifications.push(controlNotification(
           occurrence,
           'Atendimento concluído',

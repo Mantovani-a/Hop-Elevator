@@ -41,6 +41,27 @@ const occurrenceGeoOffsets = [
   { lat: -0.0045, lng: -0.0005 },
 ];
 
+export const calculateHaversineDistanceKm = (pointA, pointB) => {
+  if (!pointA || !pointB) return 0;
+  const lat1 = Array.isArray(pointA) ? pointA[0] : (pointA.lat ?? pointA.latitude);
+  const lon1 = Array.isArray(pointA) ? pointA[1] : (pointA.lng ?? pointA.longitude);
+  const lat2 = Array.isArray(pointB) ? pointB[0] : (pointB.lat ?? pointB.latitude);
+  const lon2 = Array.isArray(pointB) ? pointB[1] : (pointB.lng ?? pointB.longitude);
+
+  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) return 0;
+
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  return Math.round(distance * 10) / 10;
+};
+
 export const getEstablishmentGeoPoint = (clientId) => {
   const pos = clientGeoPositions[clientId];
   return pos ? [pos.lat, pos.lng] : SAO_PAULO_CENTER;

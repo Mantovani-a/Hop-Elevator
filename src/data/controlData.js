@@ -9,6 +9,7 @@ import {
 } from './mockData.js';
 import { calculatePriority } from '../utils/priorityScore.js';
 import { getProfilePhotoPath } from '../utils/profileAvatar.js';
+import { clientGeoPositions } from './geoCoordinates.js';
 import { OPERATION_STATUS } from './operationStore.js';
 
 export const controlUser = {
@@ -18,12 +19,6 @@ export const controlUser = {
   role: 'Supervisora de Operações',
   avatar: getProfilePhotoPath('Fernanda Lima', 'leadership'),
 };
-
-const mapCoordinates = [
-  [-23.5505, -46.6333], [-23.5631, -46.6544], [-23.5792, -46.6814], [-23.5244, -46.6672],
-  [-23.5977, -46.6765], [-23.5438, -46.6155], [-23.6162, -46.7011], [-23.5108, -46.6279],
-  [-23.5717, -46.6224], [-23.5859, -46.6598], [-23.5363, -46.7046], [-23.6048, -46.6377],
-];
 
 const workflowFromStatus = (occurrence) => {
   if (occurrence.workflowStatus) return occurrence.workflowStatus;
@@ -40,14 +35,16 @@ const getOperationalStatus = (workflowStatus, hasTechnician = true) => {
 
 const buildMetadata = (occurrence, index, elevator) => {
   const existing = occurrence.metadata || operatorOccurrenceMetadata[occurrence.id] || {};
-  const [latitude, longitude] = mapCoordinates[index % mapCoordinates.length];
+  const clientGeo = clientGeoPositions[occurrence.clientId];
+  const fallbackLat = clientGeo?.lat ?? -23.5587;
+  const fallbackLng = clientGeo?.lng ?? -46.6500;
   return {
     ...existing,
     serviceNumber: occurrence.protocol || existing.serviceNumber || `HOP-${1040 + index}`,
     distanceKm: existing.distanceKm ?? (2.1 + (index % 8) * 1.3),
     etaMinutes: existing.etaMinutes ?? (6 + (index % 7) * 3),
-    latitude: existing.latitude ?? latitude,
-    longitude: existing.longitude ?? longitude,
+    latitude: existing.latitude ?? fallbackLat,
+    longitude: existing.longitude ?? fallbackLng,
     riskToLife: existing.riskToLife ?? null,
     riskUnknown: existing.riskUnknown ?? false,
     criticalFacility: existing.criticalFacility ?? getClientById(occurrence.clientId)?.type === 'Hospital',

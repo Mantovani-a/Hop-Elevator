@@ -9,8 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/fiber": "^9.7.0",
-    "@shadergradient/react": "^2.4.20",
     "bootstrap": "^5.3.8",
     "leaflet": "^1.9.4",
     "react": "^19.2.0",

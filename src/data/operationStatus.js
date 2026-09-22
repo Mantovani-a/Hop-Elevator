@@ -1,0 +1,15 @@
+export const OPERATION_STATUS = Object.freeze({
+  PENDING: 'Pendente',
+  WAITING_ASSIGNMENT: 'Aguardando atribuição',
+  TECHNICIAN_ASSIGNED: 'Técnico atribuído',
+  ACCEPTED: 'Aceito',
+  TRAVELING: 'Em deslocamento',
+  ON_SITE: 'No local',
+  MAINTENANCE: 'Em manutenção',
+  WAITING_PART: 'Aguardando peça',
+  WAITING_SUPPORT: 'Aguardando suporte da central',
+  PART_AVAILABLE: 'Peça disponível',
+  TRAVELING_TO_PICKUP: 'A caminho da retirada',
+  RETURNING_TO_CLIENT: 'Retornando ao cliente',
+  RESOLVED: 'Resolvido',
+});

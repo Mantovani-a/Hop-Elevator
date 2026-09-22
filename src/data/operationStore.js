@@ -1,8 +1,11 @@
 import { operatorOccurrenceMetadata } from './operatorData.js';
-import { clients, elevators, createMockOccurrences, technicians } from './mockData.js';
+import { clients, elevators, createMockOccurrences } from './mockData.js';
 import { calculatePriority } from '../utils/priorityScore.js';
-import { getTechnicianRecommendation } from '../utils/dispatchRecommendation.js';
+import { resolveAutomaticDispatch } from '../utils/dispatchRecommendation.js';
 import { publishOperationNotifications, resetNotifications } from './notificationStore.js';
+import { OPERATION_STATUS } from './operationStatus.js';
+
+export { OPERATION_STATUS };
 
 const computeDuration = (startIso, endIso) => {
   const start = new Date(startIso).getTime();
@@ -19,21 +22,6 @@ const OPERATION_UPDATED_EVENT = 'hop-operation-updated';
 
 let cachedRawState = null;
 let cachedOperationState = null;
-
-export const OPERATION_STATUS = {
-  WAITING_ASSIGNMENT: 'Aguardando atribuição',
-  TECHNICIAN_ASSIGNED: 'Técnico atribuído',
-  ACCEPTED: 'Aceito',
-  TRAVELING: 'Em deslocamento',
-  ON_SITE: 'No local',
-  MAINTENANCE: 'Em manutenção',
-  WAITING_PART: 'Aguardando peça',
-  WAITING_SUPPORT: 'Aguardando suporte da central',
-  PART_AVAILABLE: 'Peça disponível',
-  TRAVELING_TO_PICKUP: 'A caminho da retirada',
-  RETURNING_TO_CLIENT: 'Retornando ao cliente',
-  RESOLVED: 'Resolvido',
-};
 
 const clientById = (id) => clients.find((client) => client.id === id);
 const elevatorById = (id) => elevators.find((elevator) => elevator.id === id);
@@ -156,7 +144,7 @@ const readOperationState = () => {
         if (!isStale) {
           const sanitizedState = normalizeState(parsed);
           cachedOperationState = sanitizedState;
-          cachedRawState = stored;
+          cachedRawState = JSON.stringify(sanitizedState);
           return cachedOperationState;
         }
 
@@ -214,71 +202,22 @@ const writeOperationState = (state, { force = false } = {}) => {
   return cachedNextState;
 };
 
+/**
+ * Inserts a new occurrence into the shared operational store, automatically
+ * triggering prioritization and smart automated technician dispatch.
+ *
+ * @param {Object} occurrence - Raw or partially populated occurrence data.
+ * @returns {Object} Updated shared operation state snapshot.
+ */
 export const addOperationOccurrence = (occurrence) => {
   const state = readOperationState();
   const sanitizedOccurrence = validateAndSanitizeOccurrence(occurrence, 0);
   if (!sanitizedOccurrence) return state;
 
-  let preparedOccurrence = sanitizedOccurrence;
-  const shouldDispatch = !sanitizedOccurrence.technicianId
-    && sanitizedOccurrence.workflowStatus === OPERATION_STATUS.WAITING_ASSIGNMENT;
-
-  if (shouldDispatch) {
-    const attemptedAt = new Date().toISOString();
-    const dispatchTechnicians = technicians.map((technician) => technician.id === 'TEC-010' && !state.operatorShiftActive
-      ? { ...technician, status: 'indisponível' }
-      : technician);
-    const recommendation = getTechnicianRecommendation(sanitizedOccurrence, dispatchTechnicians, state.occurrences);
-
-    if (recommendation) {
-      const { technician, reasons, score, distanceKm, load } = recommendation;
-      preparedOccurrence = {
-        ...sanitizedOccurrence,
-        technicianId: technician.id,
-        assignedTechnicianId: technician.id,
-        assignedAt: attemptedAt,
-        workflowStatus: OPERATION_STATUS.TECHNICIAN_ASSIGNED,
-        metadata: {
-          ...sanitizedOccurrence.metadata,
-          distanceKm,
-          etaMinutes: Math.max(5, Math.round(distanceKm * 3)),
-          assignedTechnicianUnavailable: false,
-          requiresReassignment: false,
-          automaticDispatch: { status: 'assigned', attemptedAt },
-          automaticAssignment: {
-            mode: 'automatic',
-            technicianId: technician.id,
-            assignedAt: attemptedAt,
-            score,
-            activeLoadAtAssignment: load,
-            reasons,
-          },
-        },
-        workflowHistory: [
-          ...(sanitizedOccurrence.workflowHistory || []),
-          {
-            status: OPERATION_STATUS.TECHNICIAN_ASSIGNED,
-            label: `${technician.name} atribuído automaticamente`,
-            at: attemptedAt,
-            technicianId: technician.id,
-            technicianName: technician.name,
-          },
-        ],
-      };
-    } else {
-      preparedOccurrence = {
-        ...sanitizedOccurrence,
-        metadata: {
-          ...sanitizedOccurrence.metadata,
-          automaticDispatch: {
-            status: 'no-technician',
-            attemptedAt,
-            reason: 'Nenhum técnico disponível atende aos critérios de despacho neste momento.',
-          },
-        },
-      };
-    }
-  }
+  const preparedOccurrence = resolveAutomaticDispatch(sanitizedOccurrence, {
+    operatorShiftActive: state.operatorShiftActive,
+    occurrences: state.occurrences,
+  });
 
   return writeOperationState({
     ...state,
@@ -286,6 +225,14 @@ export const addOperationOccurrence = (occurrence) => {
   });
 };
 
+/**
+ * Updates an existing occurrence in the shared operational store.
+ * Supports partial object changes or an updater function receiving the current occurrence.
+ *
+ * @param {string} occurrenceId - The unique occurrence ID (e.g., 'OCC-2026-001').
+ * @param {Object|Function} changes - Partial fields to update or function returning changes.
+ * @returns {Object} Updated shared operation state snapshot.
+ */
 export const updateOperationOccurrence = (occurrenceId, changes) => {
   const state = readOperationState();
   let changed = false;
@@ -300,11 +247,23 @@ export const updateOperationOccurrence = (occurrenceId, changes) => {
   return writeOperationState({ ...state, occurrences });
 };
 
+/**
+ * Sets the operator's duty shift state (active or inactive).
+ *
+ * @param {boolean} operatorShiftActive
+ * @returns {Object} Updated shared operation state snapshot.
+ */
 export const updateOperatorShift = (operatorShiftActive) => {
   const state = readOperationState();
   return writeOperationState({ ...state, operatorShiftActive: Boolean(operatorShiftActive) });
 };
 
+/**
+ * Resets the shared operational store back to pristine initial mock demo state,
+ * clearing any stale or orphaned localStorage keys across modules.
+ *
+ * @returns {Object} Fresh initial operation state snapshot.
+ */
 export const resetOperationState = () => {
   const initialState = createInitialOperationState();
   const obsoleteKeys = [
@@ -321,6 +280,13 @@ export const resetOperationState = () => {
   return writeOperationState(initialState, { force: true });
 };
 
+/**
+ * Subscribes to operational store changes across tabs (storage event),
+ * intra-window events (CustomEvent), and an interval heartbeat for relative time tracking.
+ *
+ * @param {() => void} callback - Listener invoked on state mutations.
+ * @returns {() => void} Unsubscribe cleanup function.
+ */
 export const subscribeOperationState = (callback) => {
   const handleCustomUpdate = () => callback();
   const handleStorageUpdate = (event) => {
@@ -336,19 +302,8 @@ export const subscribeOperationState = (callback) => {
     }
     callback();
   };
-  // Atualiza a cada 60s para manter tempos relativos sincronizados com precisão
-  const intervalId = window.setInterval(() => {
-    if (cachedOperationState) {
-      const now = new Date();
-      cachedOperationState = {
-        ...cachedOperationState,
-        occurrences: cachedOperationState.occurrences
-          .map((occurrence, index) => validateAndSanitizeOccurrence(occurrence, index, now))
-          .filter(Boolean),
-      };
-    }
-    callback();
-  }, 60000);
+  // Atualiza periodicamente para manter tempos relativos sincronizados
+  const intervalId = window.setInterval(callback, 60000);
 
   window.addEventListener(OPERATION_UPDATED_EVENT, handleCustomUpdate);
   window.addEventListener('storage', handleStorageUpdate);
@@ -359,5 +314,9 @@ export const subscribeOperationState = (callback) => {
   };
 };
 
-
+/**
+ * Returns an immediate read snapshot of current operation state.
+ * @returns {Object}
+ */
 export const getOperationSnapshot = () => readOperationState();
+

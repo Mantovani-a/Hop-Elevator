@@ -6,6 +6,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { operatorTechnician, quickHistoryByElevator } from '../../data/operatorData';
 import { getWorkflowStep } from '../../utils/operatorWorkflow';
 import { formatDate, formatDateTime } from '../../utils/presentation';
+import { getSlaStatus } from '../../utils/slaCalculator';
 import { OPERATION_STATUS } from '../../data/operationStore';
 
 export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, onAdvance }) {
@@ -15,6 +16,7 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
 
   const workflowStep = getWorkflowStep(workflowStatus);
   const isResolved = workflowStatus === OPERATION_STATUS.RESOLVED;
+  const sla = getSlaStatus(occurrence);
 
   return (
     <>
@@ -28,6 +30,14 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
         <div className="d-flex flex-wrap align-items-center gap-3">
           <PriorityIndicator priority={occurrence.priority} />
           <StatusBadge value={workflowStatus} />
+          {sla && (
+            <span
+              className={`hop-badge ${sla.isBreached ? 'hop-badge--critica' : sla.isNearBreach ? 'hop-badge--atencao' : 'hop-badge--baixa'}`}
+              title={sla.detail}
+            >
+              ⏱️ {sla.shortStatus}
+            </span>
+          )}
         </div>
       </header>
 
@@ -37,33 +47,34 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
         <div className="d-flex flex-column gap-4 flex-grow-1 w-100" style={{ minWidth: 0 }}>
           <section className="app-card p-3 p-sm-4" aria-labelledby="local-title">
             <h2 className="fs-5 mb-4" id="local-title">Local</h2>
-            <dl className="d-grid gap-3 mb-0" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Estabelecimento</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.client?.name || 'Cliente'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Tipo</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.client?.type || 'Estabelecimento'}</dd></div>
-              <div style={{ gridColumn: '1 / -1' }}><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Endereço</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.address || 'Endereço não informado'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Distância</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{Number(occurrence.metadata?.distanceKm ?? 0).toFixed(1).replace('.', ',')} km</dd></div>
+            <dl className="detail-grid">
+              <div><dt className="detail-item-label">Estabelecimento</dt><dd className="detail-item-value">{occurrence.client?.name || 'Cliente'}</dd></div>
+              <div><dt className="detail-item-label">Tipo</dt><dd className="detail-item-value">{occurrence.client?.type || 'Estabelecimento'}</dd></div>
+              <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Endereço</dt><dd className="detail-item-value">{occurrence.address || 'Endereço não informado'}</dd></div>
+              <div><dt className="detail-item-label">Distância</dt><dd className="detail-item-value">{Number(occurrence.metadata?.distanceKm ?? 0).toFixed(1).replace('.', ',')} km</dd></div>
             </dl>
           </section>
 
           <section className="app-card p-3 p-sm-4" aria-labelledby="elevator-title">
             <h2 className="fs-5 mb-4" id="elevator-title">Elevador</h2>
-            <dl className="d-grid gap-3 mb-0" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Identificação</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.elevator?.identification || 'Elevador'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Modelo cadastrado</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.elevator?.model || 'Modelo padrão'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Status</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}><StatusBadge value={occurrence.elevator?.status || 'operando'} /></dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Última manutenção</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.elevator?.lastMaintenance ? formatDate(occurrence.elevator.lastMaintenance) : 'Recente'}</dd></div>
+            <dl className="detail-grid">
+              <div><dt className="detail-item-label">Identificação</dt><dd className="detail-item-value">{occurrence.elevator?.identification || 'Elevador'}</dd></div>
+              <div><dt className="detail-item-label">Modelo cadastrado</dt><dd className="detail-item-value">{occurrence.elevator?.model || 'Modelo padrão'}</dd></div>
+              <div><dt className="detail-item-label">Status</dt><dd className="detail-item-value"><StatusBadge value={occurrence.elevator?.status || 'operando'} /></dd></div>
+              <div><dt className="detail-item-label">Última manutenção</dt><dd className="detail-item-value">{occurrence.elevator?.lastMaintenance ? formatDate(occurrence.elevator.lastMaintenance) : 'Recente'}</dd></div>
             </dl>
           </section>
 
           <section className="app-card p-3 p-sm-4" aria-labelledby="occurrence-title">
             <h2 className="fs-5 mb-4" id="occurrence-title">Ocorrência</h2>
-            <dl className="d-grid gap-3 mb-0" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
-              <div style={{ gridColumn: '1 / -1' }}><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Problema relatado</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.description || 'Intercorrência reportada'}</dd></div>
-              <div style={{ gridColumn: '1 / -1' }}><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Descrição do local</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.locationContext || 'Contexto operacional'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Horário</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{formatDateTime(occurrence.time)}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Pessoas presas</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.trappedPeople || 'Nenhuma informada'}</dd></div>
-              <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Risco informado</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.metadata?.riskUnknown ? 'Não sei / a verificar' : occurrence.metadata?.riskToLife ? 'Sim — prioridade imediata' : 'Não'}</dd></div>
-              <div style={{ gridColumn: '1 / -1' }}><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Informações do cliente</dt><dd className="fw-bold mb-0 text-break" style={{ color: 'var(--color-text)' }}>{occurrence.metadata?.clientNotes || 'Sem observações adicionais.'}</dd></div>
+            <dl className="detail-grid">
+              <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Problema relatado</dt><dd className="detail-item-value">{occurrence.description || 'Intercorrência reportada'}</dd></div>
+              <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Descrição do local</dt><dd className="detail-item-value">{occurrence.locationContext || 'Contexto operacional'}</dd></div>
+              <div><dt className="detail-item-label">Horário</dt><dd className="detail-item-value">{formatDateTime(occurrence.time)}</dd></div>
+              <div><dt className="detail-item-label">Pessoas presas</dt><dd className="detail-item-value">{occurrence.trappedPeople || 'Nenhuma informada'}</dd></div>
+              <div><dt className="detail-item-label">Risco informado</dt><dd className="detail-item-value">{occurrence.metadata?.riskUnknown ? 'Não sei / a verificar' : occurrence.metadata?.riskToLife ? 'Sim — prioridade imediata' : 'Não'}</dd></div>
+              <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Informações do cliente</dt><dd className="detail-item-value">{occurrence.metadata?.clientNotes || 'Sem observações adicionais.'}</dd></div>
+              {sla && <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Meta Contratual de SLA</dt><dd className="detail-item-value">{sla.label} · {sla.detail}</dd></div>}
             </dl>
           </section>
 

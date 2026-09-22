@@ -1,7 +1,7 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import Modal from '../Modal';
 import StatusBadge from '../StatusBadge';
-import useDialogFocus from '../../hooks/useDialogFocus';
-import { OPERATION_STATUS } from '../../data/operationStore';
+import { OPERATION_STATUS } from '../../data/operationStatus';
 import { formatDateTime } from '../../utils/presentation';
 
 const getDiagnosis = (occurrence) => occurrence.finalDiagnosis
@@ -15,8 +15,6 @@ const getParts = (occurrence) => {
 };
 
 export default function ControlElevatorHistoryModal({ elevator, onClose }) {
-  const modalRef = useRef(null);
-  useDialogFocus(Boolean(elevator), modalRef, onClose);
   const history = useMemo(
     () => [...(elevator?.maintenanceHistory || [])]
       .sort((first, second) => new Date(second.time || 0) - new Date(first.time || 0)),
@@ -26,16 +24,21 @@ export default function ControlElevatorHistoryModal({ elevator, onClose }) {
   if (!elevator) return null;
 
   return (
-    <div className="control-modal-layer" role="dialog" aria-modal="true" aria-labelledby="elevator-history-title">
-      <div ref={modalRef} className="control-modal control-elevator-history" tabIndex="-1">
-        <header>
-          <div>
-            <p className="eyebrow eyebrow--dark">{elevator.client?.name}</p>
-            <h2 id="elevator-history-title">Histórico de manutenções</h2>
-            <span>{elevator.identification} · {elevator.id}</span>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Fechar histórico">×</button>
-        </header>
+    <Modal
+      isOpen={Boolean(elevator)}
+      onClose={onClose}
+      className="control-elevator-history"
+      titleId="elevator-history-title"
+      showHeader={false}
+    >
+      <header>
+        <div>
+          <p className="eyebrow eyebrow--dark">{elevator.client?.name}</p>
+          <h2 id="elevator-history-title">Histórico de manutenções</h2>
+          <span>{elevator.identification} · {elevator.id}</span>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Fechar histórico">×</button>
+      </header>
 
         <div className="control-elevator-history__summary">
           <strong>{history.length} {history.length === 1 ? 'registro' : 'registros'} neste equipamento</strong>
@@ -80,7 +83,6 @@ export default function ControlElevatorHistoryModal({ elevator, onClose }) {
             })}
           </ol>
         ) : <p className="control-elevator-history__empty">Nenhuma ocorrência ou manutenção registrada para este equipamento.</p>}
-      </div>
-    </div>
+    </Modal>
   );
 }

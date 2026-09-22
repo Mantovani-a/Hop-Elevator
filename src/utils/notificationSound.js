@@ -1,8 +1,24 @@
+let sharedAudioContext = null;
+
+const getAudioContext = () => {
+  if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
+    return sharedAudioContext;
+  }
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  sharedAudioContext = new AudioContextClass();
+  return sharedAudioContext;
+};
+
 export const playNotificationSound = () => {
   try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
+    const context = getAudioContext();
+    if (!context) return;
+
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+
     const start = context.currentTime;
     const signature = [523.25, 659.25, 783.99];
 
@@ -21,9 +37,6 @@ export const playNotificationSound = () => {
       oscillator.start(pulseStart);
       oscillator.stop(pulseEnd);
     });
-
-    window.setTimeout(() => context.close().catch(() => {}), 430);
-    context.resume().catch(() => {});
   } catch {
     // O navegador pode bloquear áudio antes da primeira interação; o aviso visual permanece ativo.
   }

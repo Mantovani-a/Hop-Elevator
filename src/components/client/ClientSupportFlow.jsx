@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Modal from '../Modal';
 
 const initialForm = {
   elevatorId: '',
@@ -400,21 +401,23 @@ export default function ClientSupportFlow({
           )}
         </div>
       </div>
-      {emergencyConfirmationOpen && (
-        <div className="client-emergency-layer" role="dialog" aria-modal="true" aria-labelledby="emergency-confirmation-title">
-          <div className="client-emergency-modal">
-            <p className="client-emergency-modal__eyebrow">Ambiente demonstrativo · acionamento simulado</p>
-            <h2 id="emergency-confirmation-title">ATENÇÃO — Situação de emergência</h2>
-            <p>Você informou que existe risco imediato à saúde ou segurança de alguém.</p>
-            <p>Esta ocorrência será classificada como emergência crítica e iniciará o fluxo de acionamento dos Bombeiros.</p>
-            <p className="client-emergency-modal__note">Confirme apenas se a situação realmente apresentar risco imediato.</p>
-            <div className="d-flex flex-column flex-sm-row-reverse gap-2 mt-4">
-              <button className="btn btn-danger flex-fill" type="button" onClick={() => { setEmergencyConfirmationOpen(false); setStep(4); }}>Confirmar emergência</button>
-              <button className="btn btn-outline-secondary flex-fill" type="button" onClick={() => setEmergencyConfirmationOpen(false)}>Voltar e revisar</button>
-            </div>
-          </div>
+      <Modal
+        isOpen={emergencyConfirmationOpen}
+        onClose={() => setEmergencyConfirmationOpen(false)}
+        title="ATENÇÃO — Situação de emergência"
+        eyebrow="Ambiente demonstrativo · acionamento simulado"
+        titleId="emergency-confirmation-title"
+        className="client-emergency-modal"
+        layerClassName="client-emergency-layer"
+      >
+        <p>Você informou que existe risco imediato à saúde ou segurança de alguém.</p>
+        <p>Esta ocorrência será classificada como emergência crítica e iniciará o fluxo de acionamento dos Bombeiros.</p>
+        <p className="client-emergency-modal__note">Confirme apenas se a situação realmente apresentar risco imediato.</p>
+        <div className="d-flex flex-column flex-sm-row-reverse gap-2 mt-4">
+          <button className="btn btn-danger flex-fill" type="button" onClick={() => { setEmergencyConfirmationOpen(false); setStep(4); }}>Confirmar emergência</button>
+          <button className="btn btn-outline-secondary flex-fill" type="button" onClick={() => setEmergencyConfirmationOpen(false)}>Voltar e revisar</button>
         </div>
-      )}
+      </Modal>
     </section>
   );
 }

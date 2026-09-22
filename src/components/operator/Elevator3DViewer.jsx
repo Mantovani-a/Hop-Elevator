@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import elevatorModelUrl from '../../assets/logos/sistema_de_elevador.glb?url';
+import elevatorModelUrl from '../../assets/models/sistema_de_elevador.glb?url';
 import { elevatorRegions } from '../../data/elevatorRegions';
 
 /**
@@ -111,22 +111,33 @@ function applyProblemMaterials(model, problemMap, problemMeshesRef) {
   model.traverse((child) => {
     if (!child.isMesh) return;
 
-    // Remove previously added edge children
+    // Cache edges geometry once per mesh
+    if (!child.userData.edgesGeometry) {
+      child.userData.edgesGeometry = new THREE.EdgesGeometry(child.geometry, edgeThreshold);
+    }
+    const edges = child.userData.edgesGeometry;
+
+    // Remove previously added edge children and dispose materials
     const toRemove = [];
     child.children.forEach((c) => {
       if (c.isLineSegments && c.name.endsWith('_edges')) toRemove.push(c);
     });
     toRemove.forEach((c) => {
-      c.geometry.dispose();
       c.material.dispose();
       child.remove(c);
     });
+
+    // Dispose old mesh material before reassigning
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material.dispose();
+    }
+
     // Clear old userData
     delete child.userData.problem;
     delete child.userData.edgeMaterial;
 
     const isProblem = problemMap[child.name];
-    const edges = new THREE.EdgesGeometry(child.geometry, edgeThreshold);
 
     if (isProblem) {
       const severityColor = SEVERITY_COLORS[isProblem.severity] || 0xff1744;
@@ -368,6 +379,19 @@ export default function Elevator3DViewer({ diagnosis, severity }) {
       if (frameIdRef.current) cancelAnimationFrame(frameIdRef.current);
       observer.disconnect();
       themeObserver.disconnect();
+      if (sceneRef.current) {
+        sceneRef.current.traverse((child) => {
+          if (child.userData?.edgesGeometry) {
+            child.userData.edgesGeometry.dispose();
+            delete child.userData.edgesGeometry;
+          }
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+            else child.material.dispose();
+          }
+        });
+      }
       controls.dispose();
       renderer.dispose();
       if (container.contains(renderer.domElement)) {

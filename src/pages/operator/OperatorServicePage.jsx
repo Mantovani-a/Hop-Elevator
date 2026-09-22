@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import OperatorStateMessage from '../../components/operator/OperatorStateMessage';
 import OperatorCompletionForm from '../../components/operator/OperatorCompletionForm';
-import Elevator2DModel, { elevatorRegions } from '../../components/operator/Elevator2DModel';
+import ElevatorModelViewer, { elevatorRegions } from '../../components/operator/ElevatorModelViewer';
 import PriorityIndicator from '../../components/operator/PriorityIndicator';
 import RouteMap from '../../components/operator/RouteMap';
 import TechnicalInfoPanel from '../../components/operator/TechnicalInfoPanel';
 import StatusBadge from '../../components/StatusBadge';
 import { getWorkflowStep } from '../../utils/operatorWorkflow';
-import { OPERATION_STATUS } from '../../data/operationStore';
+import { OPERATION_STATUS } from '../../data/operationStatus';
 
 export default function OperatorServicePage({ occurrence, workflowStatus, onAdvance, onComplete }) {
   const [completionOpen, setCompletionOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function OperatorServicePage({ occurrence, workflowStatus, onAdva
       <div className="row g-4 mb-4">
         {!isMaintenance && <div className="col-12 col-xl-8"><RouteMap occurrence={occurrence} /></div>}
         <div className={isMaintenance ? 'col-12' : 'col-12 col-xl-4'}>
-          <Elevator2DModel diagnosis={diagnosis} severity={occurrence.priority?.classification || 'baixa'} />
+          <ElevatorModelViewer diagnosis={diagnosis} severity={occurrence.priority?.classification || 'baixa'} />
         </div>
       </div>
       <div className="row g-4">

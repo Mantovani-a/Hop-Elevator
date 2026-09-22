@@ -13,11 +13,11 @@ export default function OperatorProfile({ technician, technicianStatus }) {
       <section className="app-card p-4 p-md-5">
         <div className="d-flex flex-wrap align-items-center gap-4 pb-4 border-bottom"><ProfileAvatar name={technician.name} src={technician.avatar} size="lg" decorative /><div className="flex-grow-1"><h2 className="fs-4 mb-1" style={{ color: 'var(--color-text)' }}>{technician.name}</h2><p className="mb-3 text-secondary" style={{ fontSize: '0.9rem' }}>{technician.employeeId}</p><StatusBadge value={technicianStatus} /></div></div>
         <dl className="d-grid gap-4 mt-4 pt-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-          <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Região</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)' }}>{technician.region}</dd></div>
-          <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Turno</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)' }}>{technician.shift}</dd></div>
-          <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Atendimentos realizados</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)' }}>{technician.completedServices}</dd></div>
-          <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Chamados concluídos</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)' }}>{technician.completionRate}%</dd></div>
-          <div style={{ gridColumn: '1 / -1' }}><dt className="text-secondary fw-bold text-uppercase mb-2" style={{ fontSize: '0.7rem' }}>Especialidades</dt><dd className="mb-0"><ul className="list-unstyled d-flex flex-wrap gap-2 m-0">{technician.specialties.map((specialty) => <li className="px-3 py-2 rounded-pill text-primary bg-primary bg-opacity-10 fw-bold" style={{ fontSize: '0.82rem' }} key={specialty}>{specialty}</li>)}</ul></dd></div>
+          <div><dt className="detail-item-label">Região</dt><dd className="detail-item-value">{technician.region}</dd></div>
+          <div><dt className="detail-item-label">Turno</dt><dd className="detail-item-value">{technician.shift}</dd></div>
+          <div><dt className="detail-item-label">Atendimentos realizados</dt><dd className="detail-item-value">{technician.completedServices}</dd></div>
+          <div><dt className="detail-item-label">Chamados concluídos</dt><dd className="detail-item-value">{technician.completionRate}%</dd></div>
+          <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Especialidades</dt><dd className="mb-0"><ul className="list-unstyled d-flex flex-wrap gap-2 m-0">{technician.specialties.map((specialty) => <li className="px-3 py-2 rounded-pill text-primary bg-primary bg-opacity-10 fw-bold" style={{ fontSize: '0.82rem' }} key={specialty}>{specialty}</li>)}</ul></dd></div>
         </dl>
       </section>
     </>

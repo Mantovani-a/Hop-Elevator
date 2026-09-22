@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import ClientPage from './pages/ClientPage';
-import ControlPage from './pages/ControlPage';
-import OperatorPage from './pages/OperatorPage';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import HomePage from './pages/HomePage';
+
+const ClientPage = lazy(() => import('./pages/ClientPage'));
+const ControlPage = lazy(() => import('./pages/ControlPage'));
+const OperatorPage = lazy(() => import('./pages/OperatorPage'));
 
 const routeMap = {
   '/': HomePage,
@@ -12,6 +13,12 @@ const routeMap = {
 };
 
 const getCurrentRoute = () => window.location.hash.replace('#', '') || '/';
+
+const RouteLoader = () => (
+  <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
+    <div className="elevator-3d-loader__spinner" style={{ width: 38, height: 38 }} />
+  </div>
+);
 
 export default function App() {
   const [route, setRoute] = useState(getCurrentRoute);
@@ -29,5 +36,10 @@ export default function App() {
       : route.startsWith('/control')
         ? ControlPage
         : (routeMap[route] || HomePage);
-  return <Page route={route} />;
+
+  return (
+    <Suspense fallback={<RouteLoader />}>
+      <Page route={route} />
+    </Suspense>
+  );
 }

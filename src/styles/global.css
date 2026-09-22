@@ -231,3 +231,22 @@ textarea.form-control {
 :root[data-theme="dark"] .border-secondary-subtle {
   border-color: var(--color-border) !important;
 }
+
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] .form-select {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .form-control:focus,
+:root[data-theme="dark"] .form-select:focus {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-primary-action);
+  box-shadow: 0 0 0 0.25rem rgba(40, 100, 255, 0.25);
+}
+
+:root[data-theme="dark"] .form-control::placeholder {
+  color: var(--color-text-muted);
+}

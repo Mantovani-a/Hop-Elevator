@@ -85,8 +85,8 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
                   <span className="control-elevator-type">{getElevatorType(elevator)} · {elevator.id}</span>
                 </div>
                 <dl className="d-grid gap-3 pt-3 border-top m-0" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                  <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Último chamado</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)', fontSize: '0.84rem' }}>{elevator.lastOccurrence ? formatDateTime(elevator.lastOccurrence.time) : 'Sem registro recente'}</dd></div>
-                  <div><dt className="text-secondary fw-bold text-uppercase mb-1" style={{ fontSize: '0.7rem' }}>Ocorrências recentes</dt><dd className="fw-bold mb-0" style={{ color: 'var(--color-text)', fontSize: '0.84rem' }}>{elevator.recentOccurrenceCount ?? 0}</dd></div>
+                  <div><dt className="detail-item-label">Último chamado</dt><dd className="detail-item-value" style={{ fontSize: '0.84rem' }}>{elevator.lastOccurrence ? formatDateTime(elevator.lastOccurrence.time) : 'Sem registro recente'}</dd></div>
+                  <div><dt className="detail-item-label">Ocorrências recentes</dt><dd className="detail-item-value" style={{ fontSize: '0.84rem' }}>{elevator.recentOccurrenceCount ?? 0}</dd></div>
                 </dl>
                 <button className="btn btn-outline-primary w-100 mt-3" type="button" onClick={() => setHistoryElevator(elevator)}>Ver histórico</button>
               </article>

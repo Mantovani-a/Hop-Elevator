@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import Elevator3DViewer from './Elevator3DViewer';
+import { useState, lazy, Suspense } from 'react';
 import { elevatorRegions } from '../../data/elevatorRegions';
 
-// Re-export for consumers that already import from this file
+const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
+
 export { elevatorRegions };
 
-export default function Elevator2DModel({ diagnosis, severity }) {
+export default function ElevatorModelViewer({ diagnosis, severity }) {
   const suspectedRegions = diagnosis?.suspectedRegions || [];
   const initialRegion = suspectedRegions[0] || 'doors';
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);
@@ -14,7 +14,10 @@ export default function Elevator2DModel({ diagnosis, severity }) {
   return (
     <section className={`app-card elevator-model-card elevator-model-card--${severity}`} aria-labelledby="elevator-model-title">
       <div className="elevator-model-card__heading">
-        <div><p className="page-header__subtitle">Representação esquemática</p><h2 className="fs-5" id="elevator-model-title">{viewMode === '2d' ? 'Modelo 2D do elevador' : 'Modelo 3D Wireframe'}</h2></div>
+        <div>
+          <p className="page-header__subtitle">Representação esquemática</p>
+          <h2 className="fs-5" id="elevator-model-title">{viewMode === '2d' ? 'Modelo 2D do elevador' : 'Modelo 3D Wireframe'}</h2>
+        </div>
         <span><i aria-hidden="true" /> Região suspeita pela triagem</span>
       </div>
 
@@ -68,10 +71,18 @@ export default function Elevator2DModel({ diagnosis, severity }) {
       ) : (
         <>
           <p className="elevator-model-card__intro">Interaja com o modelo 3D. Os destaques indicam regiões suspeitas que necessitam de verificação técnica.</p>
-          <Elevator3DViewer diagnosis={diagnosis} severity={severity} />
+          <Suspense fallback={
+            <div className="elevator-3d-viewer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="elevator-3d-loader">
+                <div className="elevator-3d-loader__spinner" />
+                <span>Carregando visualizador 3D…</span>
+              </div>
+            </div>
+          }>
+            <Elevator3DViewer diagnosis={diagnosis} severity={severity} />
+          </Suspense>
         </>
       )}
-
     </section>
   );
 }

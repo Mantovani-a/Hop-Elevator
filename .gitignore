@@ -21,6 +21,8 @@
 # misc
 .DS_Store
 *.pem
+*.blend
+*.blend1
 
 # debug
 npm-debug.log*
