@@ -17,7 +17,7 @@ const computeDuration = (startIso, endIso) => {
   return hours ? `${hours}h${remaining ? ` ${remaining}min` : ''}` : `${minutes} min`;
 };
 
-const OPERATION_STORAGE_KEY = 'hop-shared-operation-v3';
+const OPERATION_STORAGE_KEY = 'hop-shared-operation-v5';
 const OPERATION_UPDATED_EVENT = 'hop-operation-updated';
 
 let cachedRawState = null;
@@ -34,8 +34,8 @@ const initialWorkflowStatus = (occurrence) => {
 };
 
 const createSeedOccurrence = (occurrence, index, now) => {
-  const seededOccurrence = occurrence.id === 'OCC-2026-009'
-    ? { ...occurrence, technicianId: 'TEC-002' }
+  const seededOccurrence = occurrence.technicianId === 'TEC-010'
+    ? { ...occurrence, technicianId: null }
     : occurrence;
   const client = clientById(seededOccurrence.clientId);
   const elevator = elevatorById(seededOccurrence.elevatorId);
@@ -57,9 +57,9 @@ const createSeedOccurrence = (occurrence, index, now) => {
 export const createInitialOperationState = (now = new Date()) => {
   const seedOccurrences = createMockOccurrences(now);
   return {
-    version: 3,
+    version: 5,
     updatedAt: now.toISOString(),
-    operatorShiftActive: false,
+    operatorShiftActive: true,
     occurrences: seedOccurrences.map((occurrence, index) => createSeedOccurrence(occurrence, index, now)),
   };
 };
@@ -111,9 +111,9 @@ const normalizeState = (state, now = new Date()) => {
     .filter(Boolean);
 
   return {
-    version: 3,
+    version: 5,
     updatedAt: state?.updatedAt || now.toISOString(),
-    operatorShiftActive: state?.operatorShiftActive === true,
+    operatorShiftActive: state?.operatorShiftActive !== false,
     occurrences: occurrences.length ? occurrences : createInitialOperationState(now).occurrences,
   };
 };
@@ -127,6 +127,9 @@ const cacheState = (state) => {
 const readOperationState = () => {
   try {
     window.localStorage.removeItem('hop-shared-operation-v1');
+    window.localStorage.removeItem('hop-shared-operation-v2');
+    window.localStorage.removeItem('hop-shared-operation-v3');
+    window.localStorage.removeItem('hop-shared-operation-v4');
     const stored = window.localStorage.getItem(OPERATION_STORAGE_KEY);
     if (stored === cachedRawState && cachedOperationState) return cachedOperationState;
     if (stored) {

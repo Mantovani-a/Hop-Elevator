@@ -53,7 +53,7 @@ export default function OperatorPage({ route = '/operator' }) {
 
   const allOccurrences = useMemo(
     () => operationState.occurrences
-      .filter((occurrence) => occurrence.technicianId === operatorTechnician.id)
+      .filter((occurrence) => occurrence.technicianId === operatorTechnician.id || occurrence.assignedTechnicianId === operatorTechnician.id)
       .map((occurrence) => {
         const operatorOccurrence = buildOperatorOccurrence(occurrence);
         return {

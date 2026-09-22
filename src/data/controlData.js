@@ -121,17 +121,24 @@ export const buildControlTechnicians = (controlOccurrences, operatorShiftActive 
     }
   }
 
+  const resolvedForTechnician = controlOccurrences.filter((occurrence) =>
+    occurrence.technicianId === technician.id && occurrence.operationalStatus === OPERATION_STATUS.RESOLVED);
+  const completedToday = technician.id === 'TEC-010' ? resolvedForTechnician.length : 1 + (index % 4);
+  const recentHistory = technician.id === 'TEC-010' && resolvedForTechnician.length === 0
+    ? ['Nenhum atendimento finalizado hoje']
+    : [
+        `${10 + (index % 4)}:${index % 2 ? '35' : '10'} — Atendimento concluído`,
+        `Ontem — ${technician.specialty}`,
+      ];
+
   if (technician.id === 'TEC-010' && !operatorShiftActive) status = 'indisponível';
   return {
     ...technician,
     status,
     currentOccurrence,
     executionOccurrence,
-    completedToday: 1 + (index % 4),
-    recentHistory: [
-      `${10 + (index % 4)}:${index % 2 ? '35' : '10'} — Atendimento concluído`,
-      `Ontem — ${technician.specialty}`,
-    ],
+    completedToday,
+    recentHistory,
     mapPosition: { x: 15 + ((index * 17) % 72), y: 18 + ((index * 23) % 64) },
   };
 });

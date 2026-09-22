@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import HopLogo from '../HopLogo';
 import ProfileAvatar from '../ProfileAvatar';
 import DemoHomeLink from '../DemoHomeLink';
-import ThemeToggle from '../ThemeToggle';
 
 export default function OperatorShiftClosed({ onStartShift, isStarting = false, technician }) {
   const [now, setNow] = useState(() => new Date());
@@ -21,7 +20,6 @@ export default function OperatorShiftClosed({ onStartShift, isStarting = false, 
 
       <header className="operator-shift-closed__top-bar">
         <DemoHomeLink />
-        <ThemeToggle compact />
       </header>
 
       <section className="operator-shift-closed__content" aria-labelledby="shift-closed-title">
