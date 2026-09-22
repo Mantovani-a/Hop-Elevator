@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OperatorShell from '../components/operator/OperatorShell';
 import OperatorStateMessage from '../components/operator/OperatorStateMessage';
 import NewOccurrenceAlert from '../components/operator/NewOccurrenceAlert';
@@ -38,7 +38,10 @@ const calculateRealDuration = (assignedAt, completedAt, fallbackStart) => {
 export default function OperatorPage({ route = '/operator' }) {
   const operationState = useOperationState();
   const [simulatedOccurrence, setSimulatedOccurrence] = useState(() => createSimulatedOccurrence());
-  const [alertOpen, setAlertOpen] = useState(false);
+  const [simulatedAlertOpen, setSimulatedAlertOpen] = useState(false);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState(() => new Set());
+  const [realAlertOccurrence, setRealAlertOccurrence] = useState(null);
+  const lastAlertedIdRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shiftTransition, setShiftTransition] = useState('');
   const [endShiftConfirmationOpen, setEndShiftConfirmationOpen] = useState(false);
@@ -80,6 +83,22 @@ export default function OperatorPage({ route = '/operator' }) {
     OPERATION_STATUS.ON_SITE,
     OPERATION_STATUS.MAINTENANCE,
   ].includes(occurrence.workflowStatus));
+  const unacceptedOccurrence = pendingOccurrences.find((occurrence) =>
+    occurrence.workflowStatus === OPERATION_STATUS.TECHNICIAN_ASSIGNED
+  );
+
+  useEffect(() => {
+    if (unacceptedOccurrence && !dismissedAlertIds.has(unacceptedOccurrence.id)) {
+      if (lastAlertedIdRef.current !== unacceptedOccurrence.id) {
+        lastAlertedIdRef.current = unacceptedOccurrence.id;
+        playNotificationSound();
+      }
+      setRealAlertOccurrence(unacceptedOccurrence);
+    } else {
+      setRealAlertOccurrence(null);
+    }
+  }, [unacceptedOccurrence, dismissedAlertIds]);
+
   const technicianStatus = [OPERATION_STATUS.TRAVELING, OPERATION_STATUS.TRAVELING_TO_PICKUP, OPERATION_STATUS.RETURNING_TO_CLIENT].includes(activeOccurrence?.workflowStatus)
     ? 'em deslocamento'
     : activeOccurrence
@@ -191,7 +210,7 @@ export default function OperatorPage({ route = '/operator' }) {
   const openSimulation = useCallback(() => {
     setSimulatedOccurrence(createSimulatedOccurrence());
     playNotificationSound();
-    setAlertOpen(true);
+    setSimulatedAlertOpen(true);
   }, []);
 
   const addSimulatedOccurrence = (workflowStatus) => {
@@ -202,10 +221,44 @@ export default function OperatorPage({ route = '/operator' }) {
       technicianId: operatorTechnician.id,
       origin: 'simulação',
     });
-    setAlertOpen(false);
+    setSimulatedAlertOpen(false);
     navigateTo(workflowStatus === OPERATION_STATUS.TRAVELING
       ? `/operator/service/${simulatedOccurrence.id}`
       : `/operator/occurrence/${simulatedOccurrence.id}`);
+  };
+
+  const currentAlertOccurrence = realAlertOccurrence || (simulatedAlertOpen ? simulatedOccurrence : null);
+  const isAlertOpen = Boolean(currentAlertOccurrence);
+
+  const handleAcceptAlert = () => {
+    if (realAlertOccurrence) {
+      const occurrenceId = realAlertOccurrence.id;
+      setRealAlertOccurrence(null);
+      advanceOccurrence(occurrenceId);
+    } else if (simulatedAlertOpen) {
+      addSimulatedOccurrence(OPERATION_STATUS.TRAVELING);
+      setSimulatedAlertOpen(false);
+    }
+  };
+
+  const handleViewAlert = () => {
+    if (realAlertOccurrence) {
+      const occurrenceId = realAlertOccurrence.id;
+      setDismissedAlertIds((prev) => new Set([...prev, occurrenceId]));
+      setRealAlertOccurrence(null);
+      navigateTo(`/operator/occurrence/${occurrenceId}`);
+    } else if (simulatedAlertOpen) {
+      addSimulatedOccurrence(OPERATION_STATUS.TECHNICIAN_ASSIGNED);
+      setSimulatedAlertOpen(false);
+    }
+  };
+
+  const handleCloseAlert = () => {
+    if (realAlertOccurrence) {
+      setDismissedAlertIds((prev) => new Set([...prev, realAlertOccurrence.id]));
+      setRealAlertOccurrence(null);
+    }
+    setSimulatedAlertOpen(false);
   };
 
   const historyItems = allOccurrences
@@ -295,11 +348,11 @@ export default function OperatorPage({ route = '/operator' }) {
     >
       {pageContent}
       <NewOccurrenceAlert
-        occurrence={simulatedOccurrence}
-        open={alertOpen}
-        onClose={() => setAlertOpen(false)}
-        onAccept={() => addSimulatedOccurrence(OPERATION_STATUS.TRAVELING)}
-        onView={() => addSimulatedOccurrence(OPERATION_STATUS.TECHNICIAN_ASSIGNED)}
+        occurrence={currentAlertOccurrence}
+        open={isAlertOpen}
+        onClose={handleCloseAlert}
+        onAccept={handleAcceptAlert}
+        onView={handleViewAlert}
       />
       {shiftTransition === 'ending' && <div className="operator-shift-transition" role="status">Encerrando turno…</div>}
       <Modal

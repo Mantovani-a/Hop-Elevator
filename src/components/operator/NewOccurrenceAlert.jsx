@@ -23,7 +23,7 @@ export default function NewOccurrenceAlert({ occurrence, open, onClose, onAccept
         <PriorityIndicator priority={occurrence?.priority} />
         <div className="my-4 pt-3 border-top d-grid gap-1">
           <strong className="fs-5">{occurrence?.client?.name || 'Cliente'}</strong>
-          <span className="text-secondary" style={{ fontSize: '0.86rem' }}>{occurrence?.elevator?.identification || 'Elevador'}</span>
+          <span className="text-secondary" style={{ fontSize: '0.86rem' }}>{occurrence?.elevator?.identification || occurrence?.elevator?.displayName || occurrence?.elevatorId || 'Elevador'}</span>
           <p className="mt-3 mb-0 fs-5 fw-normal">{occurrence?.description || 'Intercorrência reportada'}</p>
         </div>
         <div className="d-grid gap-3 mt-5">

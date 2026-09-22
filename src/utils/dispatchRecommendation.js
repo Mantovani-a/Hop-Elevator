@@ -152,7 +152,33 @@ export const resolveAutomaticDispatch = (occurrence, { operatorShiftActive = tru
   const dispatchTechnicians = allTechnicians.map((technician) => technician.id === 'TEC-010' && !operatorShiftActive
     ? { ...technician, status: 'indisponível' }
     : technician);
-  const recommendation = getTechnicianRecommendation(occurrence, dispatchTechnicians, occurrences);
+
+  // Prioriza o operador de campo ativo (João Carlos - TEC-010) para chamados originados pelo cliente
+  const joaoCarlos = allTechnicians.find((tech) => tech.id === 'TEC-010');
+  const operatorOccurrences = occurrences.filter((item) => (item.technicianId === 'TEC-010' || item.assignedTechnicianId === 'TEC-010') && activeOccurrenceFor(item));
+  const operatorExecuting = operatorOccurrences.some((item) => executionStatuses.has(item.workflowStatus || item.operationalStatus));
+  const operatorAvailable = operatorShiftActive !== false && !operatorExecuting && operatorOccurrences.length < 2;
+
+  let recommendation = null;
+  if (operatorAvailable && (occurrence.origin === 'client' || occurrence.clientId === 'CLI-001')) {
+    const specialty = getSpecialtyMatch(joaoCarlos, occurrence);
+    const distanceKm = Number(joaoCarlos?.distanceKm ?? occurrence.metadata?.distanceKm ?? 2.4);
+    recommendation = {
+      technician: joaoCarlos,
+      available: true,
+      score: 95,
+      load: operatorOccurrences.length,
+      distanceKm,
+      reasons: [
+        'Técnico em campo ativo no MVP e disponível para pronto atendimento',
+        specialty.reason,
+        `Proximidade estimada de ${distanceKm.toFixed(1).replace('.', ',')} km`,
+        operatorOccurrences.length === 0 ? 'Sem chamados ativos' : `Carga atual: ${operatorOccurrences.length} chamado`,
+      ],
+    };
+  } else {
+    recommendation = getTechnicianRecommendation(occurrence, dispatchTechnicians, occurrences);
+  }
 
   if (recommendation) {
     const { technician, reasons, score, distanceKm, load } = recommendation;
