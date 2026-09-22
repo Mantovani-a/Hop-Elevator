@@ -20,9 +20,10 @@ import ControlOccurrences from './control/ControlOccurrences';
 import ControlOverview from './control/ControlOverview';
 import ControlTechnicians from './control/ControlTechnicians';
 import { recommendTechnician } from '../utils/dispatchRecommendation';
+import { parseRoute } from '../utils/navigation';
 
 export default function ControlPage({ route = '/control' }) {
-  const [baseRoute, routeQuery = ''] = route.split('?');
+  const { baseRoute, queryParams } = useMemo(() => parseRoute(route), [route]);
   const operationState = useOperationState();
   const [selectedOccurrenceId, setSelectedOccurrenceId] = useState(null);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState(null);
@@ -35,9 +36,9 @@ export default function ControlPage({ route = '/control' }) {
   }, [route]);
 
   useEffect(() => {
-    const occurrenceId = new URLSearchParams(routeQuery).get('occurrence');
+    const occurrenceId = queryParams.get('occurrence');
     if (occurrenceId) setSelectedOccurrenceId(occurrenceId);
-  }, [routeQuery]);
+  }, [queryParams]);
 
   useEffect(() => {
     const closeOnEscape = (event) => {
@@ -66,7 +67,7 @@ export default function ControlPage({ route = '/control' }) {
   const reassignmentOccurrence = controlOccurrences.find((item) => item.id === reassignmentId);
   const partResumeOccurrence = controlOccurrences.find((item) => item.id === partResumeId);
   const reportOccurrence = controlOccurrences.find((item) => item.id === reportOccurrenceId);
-  const historyElevatorId = new URLSearchParams(routeQuery).get('history');
+  const historyElevatorId = queryParams.get('history');
   const availableTechnicians = controlTechnicians.filter((item) => item.status === 'disponível' && item.id !== reassignmentOccurrence?.technicianId);
   const recommendedTechnician = selectedOccurrence && !selectedOccurrence.technicianId
     ? recommendTechnician(selectedOccurrence, controlTechnicians, controlOccurrences)
@@ -145,12 +146,48 @@ export default function ControlPage({ route = '/control' }) {
   };
 
   let pageContent;
-  if (baseRoute === '/control') pageContent = <ControlOverview occurrences={controlOccurrences} technicians={controlTechnicians} onSelectOccurrence={setSelectedOccurrenceId} onSelectTechnician={setSelectedTechnicianId} onReassignOccurrence={setReassignmentId} />;
-  else if (baseRoute === '/control/occurrences') pageContent = <ControlOccurrences occurrences={controlOccurrences} onSelectOccurrence={setSelectedOccurrenceId} onViewReport={setReportOccurrenceId} />;
-  else if (baseRoute === '/control/technicians') pageContent = <ControlTechnicians technicians={controlTechnicians} onSelectTechnician={setSelectedTechnicianId} />;
-  else if (baseRoute === '/control/elevators') pageContent = <ControlElevators elevators={elevatorOverview} historyElevatorId={historyElevatorId} />;
-  else if (baseRoute === '/control/analytics') pageContent = <ControlAnalytics occurrences={controlOccurrences} />;
-  else pageContent = <div className="control-empty-note" role="alert"><strong>Página do HOP Control não encontrada.</strong><span>Use o menu lateral para voltar à Central de Operações.</span></div>;
+  if (baseRoute === '/control') {
+    pageContent = (
+      <ControlOverview
+        occurrences={controlOccurrences}
+        technicians={controlTechnicians}
+        onSelectOccurrence={setSelectedOccurrenceId}
+        onSelectTechnician={setSelectedTechnicianId}
+        onReassignOccurrence={setReassignmentId}
+      />
+    );
+  } else if (baseRoute === '/control/occurrences') {
+    pageContent = (
+      <ControlOccurrences
+        occurrences={controlOccurrences}
+        onSelectOccurrence={setSelectedOccurrenceId}
+        onViewReport={setReportOccurrenceId}
+      />
+    );
+  } else if (baseRoute === '/control/technicians') {
+    pageContent = (
+      <ControlTechnicians
+        technicians={controlTechnicians}
+        onSelectTechnician={setSelectedTechnicianId}
+      />
+    );
+  } else if (baseRoute === '/control/elevators') {
+    pageContent = (
+      <ControlElevators
+        elevators={elevatorOverview}
+        historyElevatorId={historyElevatorId}
+      />
+    );
+  } else if (baseRoute === '/control/analytics') {
+    pageContent = <ControlAnalytics occurrences={controlOccurrences} />;
+  } else {
+    pageContent = (
+      <div className="control-empty-note" role="alert">
+        <strong>Página do HOP Control não encontrada.</strong>
+        <span>Use o menu lateral para voltar à Central de Operações.</span>
+      </div>
+    );
+  }
 
   return (
     <ControlShell route={baseRoute} user={controlUser}>
@@ -163,11 +200,26 @@ export default function ControlPage({ route = '/control' }) {
         onReassign={(occurrence) => setReassignmentId(occurrence.id)}
         onResumePart={(occurrence) => setPartResumeId(occurrence.id)}
       />
-      <ControlOccurrenceDetail occurrence={selectedOccurrence} onClose={() => setSelectedOccurrenceId(null)} onReassign={(occurrence) => setReassignmentId(occurrence.id)} onResumePart={(occurrence) => setPartResumeId(occurrence.id)} />
-      <ControlTechnicalReport occurrence={reportOccurrence} onClose={() => setReportOccurrenceId(null)} />
-      <ControlTechnicianDetail technician={selectedTechnician} onClose={() => setSelectedTechnicianId(null)} />
-      <ControlReassignmentModal occurrence={reassignmentOccurrence} technicians={availableTechnicians} onCancel={() => setReassignmentId(null)} onConfirm={confirmReassignment} />
-      <ControlPartResumeModal occurrence={partResumeOccurrence} technicians={controlTechnicians.filter((technician) => technician.status === 'disponível')} onCancel={() => setPartResumeId(null)} onConfirm={resumePartOccurrence} />
+      <ControlTechnicalReport
+        occurrence={reportOccurrence}
+        onClose={() => setReportOccurrenceId(null)}
+      />
+      <ControlTechnicianDetail
+        technician={selectedTechnician}
+        onClose={() => setSelectedTechnicianId(null)}
+      />
+      <ControlReassignmentModal
+        occurrence={reassignmentOccurrence}
+        technicians={availableTechnicians}
+        onCancel={() => setReassignmentId(null)}
+        onConfirm={confirmReassignment}
+      />
+      <ControlPartResumeModal
+        occurrence={partResumeOccurrence}
+        technicians={controlTechnicians.filter((technician) => technician.status === 'disponível')}
+        onCancel={() => setPartResumeId(null)}
+        onConfirm={resumePartOccurrence}
+      />
     </ControlShell>
   );
 }

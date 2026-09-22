@@ -1,6 +1,7 @@
 import React from 'react';
 import HopLogo from './HopLogo';
 import { resetOperationState } from '../data/operationStore';
+import { navigateTo } from '../utils/navigation';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -27,7 +28,7 @@ export default class ErrorBoundary extends React.Component {
         /* storage indisponível */
       }
     }
-    window.location.hash = '/';
+    navigateTo('/');
     window.location.reload();
   };
 
@@ -61,7 +62,7 @@ export default class ErrorBoundary extends React.Component {
                 type="button"
                 className="btn btn-outline-secondary btn-sm w-100 mt-2"
                 onClick={() => {
-                  window.location.hash = '/';
+                  navigateTo('/');
                   window.location.reload();
                 }}
               >

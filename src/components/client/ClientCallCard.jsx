@@ -1,10 +1,8 @@
 import { ModuleIcon } from '../ModuleSidebar';
 import StatusBadge from '../StatusBadge';
-import { clientElevators, getClientStatus } from '../../data/clientData';
+import { clientElevators, getClientStatus, getDisplayElevator } from '../../data/clientData';
 import { OPERATION_STATUS } from '../../data/operationStore';
 import { formatDateTime } from '../../utils/presentation';
-
-const getDisplayElevator = (elevatorId) => clientElevators.find((elevator) => elevator.id === elevatorId);
 
 export default function ClientCallCard({ call }) {
   const elevator = getDisplayElevator(call.elevatorId);

@@ -25,6 +25,7 @@ import OperatorProfile from './operator/OperatorProfile';
 import OperatorServicePage from './operator/OperatorServicePage';
 import { playNotificationSound } from '../utils/notificationSound';
 import { formatElapsedMinutes } from '../utils/presentation';
+import { navigateTo } from '../utils/navigation';
 
 const calculateRealDuration = (assignedAt, completedAt, fallbackStart) => {
   const start = new Date(assignedAt || fallbackStart).getTime();
@@ -93,7 +94,7 @@ export default function OperatorPage({ route = '/operator' }) {
       && activeOccurrence
       && activeOccurrence.id !== occurrenceId) return;
     if (nextStatus === OPERATION_STATUS.RESOLVED) {
-      window.location.hash = `/operator/service/${occurrenceId}`;
+      navigateTo(`/operator/service/${occurrenceId}`);
       return;
     }
     const transitionAt = new Date().toISOString();
@@ -124,7 +125,7 @@ export default function OperatorPage({ route = '/operator' }) {
       workflowHistory: [...(current.workflowHistory || []), { status: nextStatus, label: eventLabel, at: transitionAt, technicianId: operatorTechnician.id, technicianName: operatorTechnician.name }],
     }));
     if ([OPERATION_STATUS.TRAVELING, OPERATION_STATUS.TRAVELING_TO_PICKUP, OPERATION_STATUS.RETURNING_TO_CLIENT, OPERATION_STATUS.MAINTENANCE].includes(nextStatus)) {
-      window.location.hash = `/operator/service/${occurrenceId}`;
+      navigateTo(`/operator/service/${occurrenceId}`);
     }
   };
 
@@ -153,7 +154,7 @@ export default function OperatorPage({ route = '/operator' }) {
           { status: OPERATION_STATUS.WAITING_PART, label: `Peça solicitada: ${details.part} ×${Number(details.quantity) || 1}; técnico liberado`, at: completedAt, technicianId: operatorTechnician.id, technicianName: operatorTechnician.name },
         ],
       }));
-      window.location.hash = '/operator';
+      navigateTo('/operator');
       return;
     }
     if (details.outcome === 'support') {
@@ -165,7 +166,7 @@ export default function OperatorPage({ route = '/operator' }) {
         supportRequest: { reason: details.diagnosis, observation: details.observation, requestedAt: completedAt, requestedBy: { id: operatorTechnician.id, name: operatorTechnician.name }, state: 'Aguardando central' },
         workflowHistory: [...(current.workflowHistory || []), { status: OPERATION_STATUS.WAITING_SUPPORT, label: 'Suporte da central solicitado; técnico liberado', at: completedAt, technicianId: operatorTechnician.id, technicianName: operatorTechnician.name }],
       }));
-      window.location.hash = '/operator';
+      navigateTo('/operator');
       return;
     }
     const finalCondition = details.condition;
@@ -184,7 +185,7 @@ export default function OperatorPage({ route = '/operator' }) {
       },
       workflowHistory: [...(current.workflowHistory || []), { status: OPERATION_STATUS.RESOLVED, label: 'Atendimento concluído', at: completedAt, technicianId: operatorTechnician.id, technicianName: operatorTechnician.name }],
     }));
-    window.location.hash = '/operator';
+    navigateTo('/operator');
   };
 
   const openSimulation = useCallback(() => {
@@ -202,9 +203,9 @@ export default function OperatorPage({ route = '/operator' }) {
       origin: 'simulação',
     });
     setAlertOpen(false);
-    window.location.hash = workflowStatus === OPERATION_STATUS.TRAVELING
+    navigateTo(workflowStatus === OPERATION_STATUS.TRAVELING
       ? `/operator/service/${simulatedOccurrence.id}`
-      : `/operator/occurrence/${simulatedOccurrence.id}`;
+      : `/operator/occurrence/${simulatedOccurrence.id}`);
   };
 
   const historyItems = allOccurrences
@@ -236,7 +237,7 @@ export default function OperatorPage({ route = '/operator' }) {
     setShiftTransition('ending');
     window.setTimeout(() => {
       updateOperatorShift(false);
-      window.location.hash = '/operator';
+      navigateTo('/operator');
       setShiftTransition('');
     }, 320);
   };

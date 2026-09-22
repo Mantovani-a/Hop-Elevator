@@ -82,7 +82,13 @@ export default function ControlTechnicalReport({ occurrence, onClose }) {
           <h3>{partRequest ? 'Fluxo de peça e etapas do atendimento' : 'Etapas do atendimento'}</h3>
           {timeline.length ? (
             <ol className="control-event-timeline control-report-timeline">
-              {timeline.map((event, index) => <li key={`${event.at}-${index}`}><time dateTime={event.at}>{formatDateTime(event.at)}</time><span>{event.label}</span>{index < timeline.length - 1 && <i aria-hidden="true" />}</li>)}
+              {timeline.map((event, index) => (
+                <li key={`${event.at}-${index}`}>
+                  <time dateTime={event.at}>{formatDateTime(event.at)}</time>
+                  <span>{event.label}</span>
+                  {index < timeline.length - 1 && <i aria-hidden="true" />}
+                </li>
+              ))}
             </ol>
           ) : <p className="control-report-panel__empty">Histórico das etapas não informado.</p>}
         </section>

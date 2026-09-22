@@ -51,11 +51,183 @@ export default function ControlOccurrenceDetail({
             </span>
           )}
         </div>
-        <section><h3>Ocorrência</h3><dl><div><dt>Problema</dt><dd>{occurrence.description || 'Intercorrência reportada'}</dd></div>{occurrence.metadata?.reportedProblems?.length > 0 && <div><dt>Sintomas informados</dt><dd>{occurrence.metadata.reportedProblems.join(' · ')}</dd></div>}<div><dt>Horário</dt><dd>{formatDateTime(occurrence.time)}</dd></div><div><dt>Tempo aberto</dt><dd>{formatElapsedMinutes(occurrence.priority?.elapsedMinutes ?? 0)}</dd></div><div><dt>Pessoas presas</dt><dd>{occurrence.trappedPeople || 'Nenhuma informada'}</dd></div><div><dt>Risco informado</dt><dd>{occurrence.metadata?.riskUnknown ? 'Não sei / a verificar' : occurrence.metadata?.riskToLife ? 'Sim' : 'Não'}</dd></div>{sla && <div><dt>Meta de SLA</dt><dd>{sla.label} · {sla.detail}</dd></div>}</dl>{occurrence.metadata?.emergencyDispatchSimulation && <p className="control-confirm-copy">Emergência crítica confirmada · acionamento demonstrativo dos Bombeiros.</p>}<ul className="control-reasons">{(occurrence.priority?.reasons || ['Avaliação operacional padrão']).map((reason) => <li key={reason}><span aria-hidden="true">✓</span>{reason}</li>)}</ul></section>
-        <section><h3>Local e elevador</h3><dl><div><dt>Estabelecimento</dt><dd>{occurrence.client?.name || 'Cliente'}</dd></div><div><dt>Tipo</dt><dd>{occurrence.client?.type || 'Estabelecimento'}</dd></div><div><dt>Endereço</dt><dd>{occurrence.address || 'Endereço não informado'}</dd></div><div><dt>Elevador</dt><dd>{occurrence.elevator?.identification || 'Elevador'}</dd></div><div><dt>Modelo</dt><dd>{occurrence.elevator?.model || 'Modelo padrão'}</dd></div></dl></section>
-        {occurrence.partRequest && <section className="control-part-detail"><h3>Necessidade de peça</h3><dl><div><dt>Peça</dt><dd>{occurrence.partRequest.part}</dd></div><div><dt>Quantidade</dt><dd>{occurrence.partRequest.quantity}</dd></div><div><dt>Urgência</dt><dd>{occurrence.partRequest.urgency}</dd></div><div><dt>Situação</dt><dd>{occurrence.partRequest.state}</dd></div><div><dt>Diagnóstico inicial</dt><dd>{occurrence.partRequest.diagnosedBy?.name}</dd></div><div><dt>Solicitada em</dt><dd>{formatDateTime(occurrence.partRequest.requestedAt)}</dd></div>{occurrence.partRequest.pickupLocation && <div><dt>Retirada</dt><dd>{occurrence.partRequest.pickupLocation}</dd></div>}{occurrence.partRequest.resumedBy && <div><dt>Retomada atribuída a</dt><dd>{occurrence.partRequest.resumedBy.name}</dd></div>}</dl><p><strong>Motivo:</strong> {occurrence.partRequest.diagnosis}</p>{occurrence.partRequest.observation && <p><strong>Observação:</strong> {occurrence.partRequest.observation}</p>}{occurrence.workflowStatus === OPERATION_STATUS.WAITING_PART && <button className="btn btn-primary w-100" type="button" onClick={() => onResumePart(occurrence)}>PEÇA DISPONÍVEL — RETOMAR ATENDIMENTO</button>}</section>}
-        {occurrence.supportRequest && <section><h3>Suporte da central</h3><p><strong>Solicitado por {occurrence.supportRequest.requestedBy?.name}:</strong> {occurrence.supportRequest.reason}</p>{occurrence.supportRequest.observation && <p>{occurrence.supportRequest.observation}</p>}<StatusBadge value={occurrence.supportRequest.state} /></section>}
-        {occurrence.workflowStatus === OPERATION_STATUS.RESOLVED && occurrence.finalDiagnosis && <section><h3>Encerramento técnico</h3><dl><div><dt>Resultado</dt><dd>{occurrence.finalDiagnosis}</dd></div><div><dt>Ação realizada</dt><dd>{occurrence.solution}</dd></div><div><dt>Condição final</dt><dd>{occurrence.finalCondition}</dd></div><div><dt>Conclusão</dt><dd>{formatDateTime(occurrence.completedAt)}</dd></div></dl></section>}
+        <section>
+          <h3>Ocorrência</h3>
+          <dl>
+            <div>
+              <dt>Problema</dt>
+              <dd>{occurrence.description || 'Intercorrência reportada'}</dd>
+            </div>
+            {occurrence.metadata?.reportedProblems?.length > 0 && (
+              <div>
+                <dt>Sintomas informados</dt>
+                <dd>{occurrence.metadata.reportedProblems.join(' · ')}</dd>
+              </div>
+            )}
+            <div>
+              <dt>Horário</dt>
+              <dd>{formatDateTime(occurrence.time)}</dd>
+            </div>
+            <div>
+              <dt>Tempo aberto</dt>
+              <dd>{formatElapsedMinutes(occurrence.priority?.elapsedMinutes ?? 0)}</dd>
+            </div>
+            <div>
+              <dt>Pessoas presas</dt>
+              <dd>{occurrence.trappedPeople || 'Nenhuma informada'}</dd>
+            </div>
+            <div>
+              <dt>Risco informado</dt>
+              <dd>
+                {occurrence.metadata?.riskUnknown
+                  ? 'Não sei / a verificar'
+                  : occurrence.metadata?.riskToLife
+                    ? 'Sim'
+                    : 'Não'}
+              </dd>
+            </div>
+            {sla && (
+              <div>
+                <dt>Meta de SLA</dt>
+                <dd>{sla.label} · {sla.detail}</dd>
+              </div>
+            )}
+          </dl>
+          {occurrence.metadata?.emergencyDispatchSimulation && (
+            <p className="control-confirm-copy">
+              Emergência crítica confirmada · acionamento demonstrativo dos Bombeiros.
+            </p>
+          )}
+          <ul className="control-reasons">
+            {(occurrence.priority?.reasons || ['Avaliação operacional padrão']).map((reason) => (
+              <li key={reason}>
+                <span aria-hidden="true">✓</span>
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h3>Local e elevador</h3>
+          <dl>
+            <div>
+              <dt>Estabelecimento</dt>
+              <dd>{occurrence.client?.name || 'Cliente'}</dd>
+            </div>
+            <div>
+              <dt>Tipo</dt>
+              <dd>{occurrence.client?.type || 'Estabelecimento'}</dd>
+            </div>
+            <div>
+              <dt>Endereço</dt>
+              <dd>{occurrence.address || 'Endereço não informado'}</dd>
+            </div>
+            <div>
+              <dt>Elevador</dt>
+              <dd>{occurrence.elevator?.identification || 'Elevador'}</dd>
+            </div>
+            <div>
+              <dt>Modelo</dt>
+              <dd>{occurrence.elevator?.model || 'Modelo padrão'}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {occurrence.partRequest && (
+          <section className="control-part-detail">
+            <h3>Necessidade de peça</h3>
+            <dl>
+              <div>
+                <dt>Peça</dt>
+                <dd>{occurrence.partRequest.part}</dd>
+              </div>
+              <div>
+                <dt>Quantidade</dt>
+                <dd>{occurrence.partRequest.quantity}</dd>
+              </div>
+              <div>
+                <dt>Urgência</dt>
+                <dd>{occurrence.partRequest.urgency}</dd>
+              </div>
+              <div>
+                <dt>Situação</dt>
+                <dd>{occurrence.partRequest.state}</dd>
+              </div>
+              <div>
+                <dt>Diagnóstico inicial</dt>
+                <dd>{occurrence.partRequest.diagnosedBy?.name}</dd>
+              </div>
+              <div>
+                <dt>Solicitada em</dt>
+                <dd>{formatDateTime(occurrence.partRequest.requestedAt)}</dd>
+              </div>
+              {occurrence.partRequest.pickupLocation && (
+                <div>
+                  <dt>Retirada</dt>
+                  <dd>{occurrence.partRequest.pickupLocation}</dd>
+                </div>
+              )}
+              {occurrence.partRequest.resumedBy && (
+                <div>
+                  <dt>Retomada atribuída a</dt>
+                  <dd>{occurrence.partRequest.resumedBy.name}</dd>
+                </div>
+              )}
+            </dl>
+            <p><strong>Motivo:</strong> {occurrence.partRequest.diagnosis}</p>
+            {occurrence.partRequest.observation && (
+              <p><strong>Observação:</strong> {occurrence.partRequest.observation}</p>
+            )}
+            {occurrence.workflowStatus === OPERATION_STATUS.WAITING_PART && (
+              <button
+                className="btn btn-primary w-100"
+                type="button"
+                onClick={() => onResumePart(occurrence)}
+              >
+                PEÇA DISPONÍVEL — RETOMAR ATENDIMENTO
+              </button>
+            )}
+          </section>
+        )}
+
+        {occurrence.supportRequest && (
+          <section>
+            <h3>Suporte da central</h3>
+            <p>
+              <strong>Solicitado por {occurrence.supportRequest.requestedBy?.name}:</strong>{' '}
+              {occurrence.supportRequest.reason}
+            </p>
+            {occurrence.supportRequest.observation && (
+              <p>{occurrence.supportRequest.observation}</p>
+            )}
+            <StatusBadge value={occurrence.supportRequest.state} />
+          </section>
+        )}
+
+        {occurrence.workflowStatus === OPERATION_STATUS.RESOLVED && occurrence.finalDiagnosis && (
+          <section>
+            <h3>Encerramento técnico</h3>
+            <dl>
+              <div>
+                <dt>Resultado</dt>
+                <dd>{occurrence.finalDiagnosis}</dd>
+              </div>
+              <div>
+                <dt>Ação realizada</dt>
+                <dd>{occurrence.solution}</dd>
+              </div>
+              <div>
+                <dt>Condição final</dt>
+                <dd>{occurrence.finalCondition}</dd>
+              </div>
+              <div>
+                <dt>Conclusão</dt>
+                <dd>{formatDateTime(occurrence.completedAt)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
         <section>
           <h3>Técnico</h3>
           {occurrence.metadata?.requiresReassignment && <p className="control-confirm-copy">Técnico atribuído está indisponível. A ocorrência permanece aberta e exige reatribuição.</p>}

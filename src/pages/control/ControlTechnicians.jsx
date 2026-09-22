@@ -13,7 +13,11 @@ const filters = [
 export default function ControlTechnicians({ technicians, onSelectTechnician }) {
   const [filter, setFilter] = useState('all');
   const available = technicians.filter((t) => t.status === 'disponível').length;
-  const sortedTechnicians = [...technicians].sort((a, b) => (b.id === 'TEC-010' ? 1 : -1));
+  const sortedTechnicians = [...technicians].sort((a, b) => {
+    if (a.id === 'TEC-010') return -1;
+    if (b.id === 'TEC-010') return 1;
+    return a.name.localeCompare(b.name);
+  });
   const filtered = sortedTechnicians.filter((technician) => filter === 'all' || technician.status === filter);
 
   return (

@@ -1,10 +1,8 @@
 import MetricCard from '../../components/MetricCard';
 import ClientElevatorCard from '../../components/client/ClientElevatorCard';
 import ClientCallCard from '../../components/client/ClientCallCard';
-import { clientEstablishment, clientUser } from '../../data/clientData';
-
-const getDisplayElevator = (elevatorId, displayedElevators) =>
-  displayedElevators.find((elevator) => elevator.id === elevatorId);
+import { clientEstablishment, clientUser, getDisplayElevator } from '../../data/clientData';
+import { navigateTo } from '../../utils/navigation';
 
 export default function ClientOverview({ displayedElevators, activeCalls, latestActiveCall, statusFor }) {
   const operatingCount = displayedElevators.filter((e) => e.clientStatus === 'Operação normal').length;
@@ -49,7 +47,7 @@ export default function ClientOverview({ displayedElevators, activeCalls, latest
                   key={elv.id}
                   type="button"
                   className="btn btn-sm btn-outline-secondary rounded-pill fw-semibold"
-                  onClick={() => { window.location.hash = `/client/support/${elv.id}`; }}
+                  onClick={() => navigateTo(`/client/support/${elv.id}`)}
                 >
                   {elv.displayName}
                 </button>
@@ -61,7 +59,7 @@ export default function ClientOverview({ displayedElevators, activeCalls, latest
             <button
               className="btn btn-primary btn-lg px-4"
               type="button"
-              onClick={() => { window.location.hash = '/client/support'; }}
+              onClick={() => navigateTo('/client/support')}
             >
               <span>✚</span>
               <span>Registrar ocorrência</span>
@@ -106,8 +104,8 @@ export default function ClientOverview({ displayedElevators, activeCalls, latest
               <ClientElevatorCard
                 elevator={elevator}
                 activeCall={elevator.activeCall}
-                onSupport={(id) => { window.location.hash = `/client/support/${id}`; }}
-                onViewCall={(callId) => { window.location.hash = `/client/call/${callId}`; }}
+                onSupport={(id) => navigateTo(`/client/support/${id}`)}
+                onViewCall={(callId) => navigateTo(`/client/call/${callId}`)}
               />
             </div>
           ))}

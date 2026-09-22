@@ -55,3 +55,35 @@ export const getTimeline = (call) => {
   const currentIndex = Math.max(0, steps.reduce((last, step, index) => (step.reached ? index : last), 0));
   return steps.map((step, index) => ({ ...step, current: index === currentIndex && workflowStatus !== OPERATION_STATUS.RESOLVED }));
 };
+
+/**
+ * Localiza e retorna o elevador para exibição na área do cliente.
+ * Centraliza a busca que antes estava duplicada em 4 arquivos.
+ *
+ * @param {string} elevatorId
+ * @param {Array<Object>} [elevatorsList=clientElevators]
+ * @returns {Object|undefined}
+ */
+export const getDisplayElevator = (elevatorId, elevatorsList = clientElevators) =>
+  (elevatorsList || clientElevators).find((elevator) => elevator.id === elevatorId);
+
+/**
+ * Retorna um rótulo legível e amigável para o cliente sobre a situação do técnico.
+ *
+ * @param {string} workflowStatus
+ * @param {boolean} isResolved
+ * @returns {string}
+ */
+export const getTechnicianWorkflowLabel = (workflowStatus, isResolved = false) => {
+  if (isResolved || workflowStatus === OPERATION_STATUS.RESOLVED) return 'Atendimento concluído';
+  if (workflowStatus === OPERATION_STATUS.MAINTENANCE) return 'Técnico realizando atendimento';
+  if (workflowStatus === OPERATION_STATUS.ON_SITE) return 'Técnico no local';
+  if (workflowStatus === OPERATION_STATUS.TRAVELING) return 'Técnico a caminho';
+  if (workflowStatus === OPERATION_STATUS.PART_AVAILABLE) return 'Peça disponível para atendimento';
+  if (workflowStatus === OPERATION_STATUS.WAITING_PART) return 'Aguardando envio de peça';
+  if (workflowStatus === OPERATION_STATUS.WAITING_SUPPORT) return 'Aguardando apoio operacional';
+  if ([OPERATION_STATUS.TECHNICIAN_ASSIGNED, OPERATION_STATUS.ACCEPTED].includes(workflowStatus)) {
+    return 'Técnico designado';
+  }
+  return 'Aguardando técnico';
+};

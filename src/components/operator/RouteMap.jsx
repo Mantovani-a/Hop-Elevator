@@ -15,24 +15,24 @@ export default function RouteMap({ occurrence }) {
   const [locationState, setLocationState] = useState('demo');
   const [liveOrigin, setLiveOrigin] = useState(null);
 
-  const assignedTechnician = getTechnicianById(occurrence.technicianId) || operatorTechnician;
-  const technicianPosition = technicianGeoPositions[assignedTechnician.id] || technicianGeoPositions['TEC-010'];
+  const assignedTechnician = getTechnicianById(occurrence?.technicianId) || operatorTechnician;
+  const technicianPosition = technicianGeoPositions[assignedTechnician?.id] || technicianGeoPositions['TEC-010'] || { lat: -23.5280, lng: -46.6350 };
   const defaultOrigin = [
     technicianPosition.lat,
     technicianPosition.lng,
   ];
 
   const origin = liveOrigin || defaultOrigin;
-  const destination = getEstablishmentGeoPoint(occurrence.clientId);
+  const destination = getEstablishmentGeoPoint(occurrence?.clientId) || [-23.5614, -46.6559];
   const pickupPoint = [-23.5489, -46.6388];
-  const hasPartMission = Boolean(occurrence.partRequest);
-  const returningToClient = [OPERATION_STATUS.RETURNING_TO_CLIENT, OPERATION_STATUS.MAINTENANCE, OPERATION_STATUS.RESOLVED].includes(occurrence.workflowStatus);
+  const hasPartMission = Boolean(occurrence?.partRequest);
+  const returningToClient = [OPERATION_STATUS.RETURNING_TO_CLIENT, OPERATION_STATUS.MAINTENANCE, OPERATION_STATUS.RESOLVED].includes(occurrence?.workflowStatus);
 
   const route = useMemo(
     () => hasPartMission && !returningToClient
       ? [...buildGeoRoute(origin, pickupPoint), ...buildGeoRoute(pickupPoint, destination).slice(1)]
       : buildGeoRoute(origin, destination),
-    [origin[0], origin[1], destination[0], destination[1], hasPartMission, returningToClient]
+    [origin?.[0], origin?.[1], destination?.[0], destination?.[1], hasPartMission, returningToClient]
   );
 
   const markers = useMemo(

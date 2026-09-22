@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import StatusBadge from '../../components/StatusBadge';
 import ControlElevatorHistoryModal from '../../components/control/ControlElevatorHistoryModal';
 import { formatDateTime } from '../../utils/presentation';
+import { navigateTo } from '../../utils/navigation';
 
 const normalizeText = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -96,7 +97,7 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
       ) : <div className="control-empty-note"><strong>Nenhum elevador encontrado.</strong><span>Ajuste ou limpe os filtros para visualizar outros equipamentos.</span></div>}
       <ControlElevatorHistoryModal elevator={historyElevator} onClose={() => {
         setHistoryElevator(null);
-        if (historyElevatorId) window.location.hash = '#/control/elevators';
+        if (historyElevatorId) navigateTo('/control/elevators');
       }} />
     </>
   );

@@ -28,8 +28,14 @@ export default function OperatorDashboard({
   const nextOccurrence = activeOccurrence || occurrences[0];
   const criticalCount = occurrences.filter((occurrence) => occurrence.priority?.classification === 'crítica').length;
 
+  const techName = technician?.name || 'João Carlos';
+
   if (isLoading) {
-    return <OperatorStateMessage type="loading" title="Carregando ocorrências atribuídas">Aguarde enquanto organizamos a fila de João Carlos por prioridade.</OperatorStateMessage>;
+    return (
+      <OperatorStateMessage type="loading" title="Carregando ocorrências atribuídas">
+        Aguarde enquanto organizamos a fila de {techName} por prioridade.
+      </OperatorStateMessage>
+    );
   }
 
   const nextSeverity = nextOccurrence?.priority?.classification || 'baixa';
@@ -40,16 +46,46 @@ export default function OperatorDashboard({
       <header className="page-header">
         <div>
           <p className="page-header__subtitle">Visão operacional</p>
-          <h1 className="page-header__title">{getGreeting()}, {technician?.name || 'João Carlos'}</h1>
+          <h1 className="page-header__title">{getGreeting()}, {techName}</h1>
         </div>
-        <button className="btn btn-sm btn-outline-primary d-md-none" type="button" onClick={onSimulate}>Simular nova ocorrência</button>
+        <button className="btn btn-sm btn-outline-primary d-md-none" type="button" onClick={onSimulate}>
+          Simular nova ocorrência
+        </button>
       </header>
 
       <section className="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4" aria-label="Resumo operacional">
-        <div className="col"><MetricCard icon="alert" label="Prioridade da próxima ocorrência" value={nextOccurrence ? `${nextOccurrence.priority?.score ?? 0}/100` : '—'} detail={nextOccurrence?.client?.name || 'Fila livre'} /></div>
-        <div className="col"><MetricCard label="Chamados pendentes" value={occurrences.length} detail="atribuídos a João Carlos" /></div>
-        <div className="col"><MetricCard label="Ocorrências críticas" value={criticalCount} detail="prioridade imediata" tone="critical" /></div>
-        <div className="col"><MetricCard icon="check" label="Concluídos hoje" value={completedToday} detail="atendimentos finalizados" tone="success" /></div>
+        <div className="col">
+          <MetricCard
+            icon="alert"
+            label="Prioridade da próxima ocorrência"
+            value={nextOccurrence ? `${nextOccurrence.priority?.score ?? 0}/100` : '—'}
+            detail={nextOccurrence?.client?.name || 'Fila livre'}
+          />
+        </div>
+        <div className="col">
+          <MetricCard
+            label="Chamados pendentes"
+            value={occurrences.length}
+            detail={`atribuídos a ${techName}`}
+          />
+        </div>
+        <div className="col">
+          <MetricCard
+            label="Ocorrências críticas"
+            value={criticalCount}
+            detail="prioridade imediata"
+            tone="critical"
+          />
+        </div>
+        <div className="col">
+          <MetricCard
+            icon="check"
+            label="Concluídos hoje"
+            value={completedToday}
+            detail="atendimentos finalizados"
+            tone="success"
+          />
+        </div>
       </section>
 
       {nextOccurrence ? (
@@ -87,7 +123,9 @@ export default function OperatorDashboard({
           </article>
         </section>
       ) : (
-        <OperatorStateMessage type="empty" title="Nenhuma ocorrência pendente">João Carlos está livre para receber um novo atendimento.</OperatorStateMessage>
+        <OperatorStateMessage type="empty" title="Nenhuma ocorrência pendente">
+          {techName} está livre para receber um novo atendimento.
+        </OperatorStateMessage>
       )}
 
       {occurrences.length > 1 && (

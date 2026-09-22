@@ -6,6 +6,7 @@ import {
   subscribeNotifications,
 } from '../data/notificationStore';
 import { playNotificationSound } from '../utils/notificationSound';
+import { navigateTo } from '../utils/navigation';
 
 const formatNotificationTime = (value) => {
   const date = new Date(value);
@@ -24,7 +25,7 @@ const BellIcon = () => (
 
 const openNotification = (notification) => {
   markNotificationRead(notification.id);
-  window.location.hash = notification.href.replace(/^#/, '');
+  navigateTo(notification.href);
 };
 
 function NotificationToast({ notification, onDismiss }) {
@@ -59,8 +60,16 @@ export default function NotificationCenter({ module, recipientId = null }) {
   const unreadCount = visibleNotifications.filter((item) => !item.read).length;
 
   useEffect(() => {
+    const currentIdSet = new Set(visibleNotifications.map((item) => item.id));
+    if (visibleNotifications.length === 0) {
+      knownIds.current.clear();
+      setToasts([]);
+      return;
+    }
+
     const fresh = visibleNotifications.filter((item) => !knownIds.current.has(item.id));
-    visibleNotifications.forEach((item) => knownIds.current.add(item.id));
+    knownIds.current = currentIdSet;
+
     if (!fresh.length) return;
     setToasts((current) => [...fresh.reverse(), ...current].slice(0, 3));
     playNotificationSound();
@@ -82,7 +91,13 @@ export default function NotificationCenter({ module, recipientId = null }) {
 
   return (
     <div className="hop-notification-center" ref={rootRef}>
-      <button className="hop-notification-button" type="button" aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ''}`} aria-expanded={panelOpen} onClick={() => setPanelOpen((open) => !open)}>
+      <button
+        className="hop-notification-button"
+        type="button"
+        aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ''}`}
+        aria-expanded={panelOpen}
+        onClick={() => setPanelOpen((open) => !open)}
+      >
         <BellIcon />
         {unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
@@ -90,17 +105,35 @@ export default function NotificationCenter({ module, recipientId = null }) {
       {panelOpen && (
         <section className="hop-notification-panel" aria-label="Notificações recentes">
           <header>
-            <div><strong>Notificações</strong><small>{unreadCount ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia'}</small></div>
-            {unreadCount > 0 && <button type="button" onClick={() => markAllNotificationsRead(module, recipientId)}>Marcar todas como lidas</button>}
+            <div>
+              <strong>Notificações</strong>
+              <small>{unreadCount ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia'}</small>
+            </div>
+            {unreadCount > 0 && (
+              <button type="button" onClick={() => markAllNotificationsRead(module, recipientId)}>
+                Marcar todas como lidas
+              </button>
+            )}
           </header>
           <div className="hop-notification-list">
             {visibleNotifications.slice(0, 15).map((notification) => (
-              <button type="button" className={notification.read ? '' : 'is-unread'} key={notification.id} onClick={() => openNotification(notification)}>
+              <button
+                type="button"
+                className={notification.read ? '' : 'is-unread'}
+                key={notification.id}
+                onClick={() => openNotification(notification)}
+              >
                 <span className="hop-notification-list__marker" aria-hidden="true" />
-                <span><strong>{notification.title}</strong><small>{notification.message}</small><time>{formatNotificationTime(notification.createdAt)}</time></span>
+                <span>
+                  <strong>{notification.title}</strong>
+                  <small>{notification.message}</small>
+                  <time>{formatNotificationTime(notification.createdAt)}</time>
+                </span>
               </button>
             ))}
-            {!visibleNotifications.length && <p className="hop-notification-empty">Nenhuma notificação recente.</p>}
+            {!visibleNotifications.length && (
+              <p className="hop-notification-empty">Nenhuma notificação recente.</p>
+            )}
           </div>
         </section>
       )}

@@ -11,13 +11,12 @@ import {
   clientEstablishment,
   clientUser,
   getClientStatus,
+  getDisplayElevator,
 } from '../data/clientData';
 import { OPERATION_STATUS, addOperationOccurrence } from '../data/operationStore';
-import { getElevatorById } from '../data/mockData';
 import useOperationState from '../hooks/useOperationState';
-import { calculatePriority } from '../utils/priorityScore';
-
-const getDisplayElevator = (elevatorId) => clientElevators.find((elevator) => elevator.id === elevatorId);
+import { buildClientOccurrencePayload } from '../services/clientSupportService';
+import { navigateTo } from '../utils/navigation';
 
 export default function ClientPage({ route = '/client' }) {
   const operationState = useOperationState();
@@ -64,110 +63,10 @@ export default function ClientPage({ route = '/client' }) {
   const submitSupport = (form) => {
     setSubmitError(false);
     try {
-      const now = new Date();
-      const elevator = form.elevator || getDisplayElevator(form.elevatorId) || displayedElevators[0];
-      const id = `OCC-CLIENT-${now.getTime()}`;
-      const protocol = `HOP-${String(now.getTime()).slice(-6)}`;
-
-      const trappedCountNum = form.trappedPeople === 'Sim' ? (Number(form.trappedCount) || 1) : 0;
-      const reportedProblems = Array.isArray(form.problemTypes) && form.problemTypes.length
-        ? form.problemTypes
-        : [form.problemType].filter(Boolean);
-      const problemDescription = reportedProblems
-        .map((problem) => problem === 'Outro problema' ? form.otherProblem : problem)
-        .filter(Boolean)
-        .join(' · ');
-      const occurrence = {
-        id,
-        elevatorId: elevator.id,
-        clientId: clientEstablishment.id,
-        address: elevator.address || clientEstablishment.address,
-        time: now.toISOString(),
-        description: form.observation || problemDescription || (form.trappedPeople === 'Sim'
-          ? `Passageiro(s) preso(s) na cabine (${trappedCountNum} pessoa${trappedCountNum > 1 ? 's' : ''}).`
-          : `Intercorrência relatada pelo cliente no ${elevator.displayName}.`),
-        status: 'aberta',
-        technicianId: null,
-        trappedPeople: trappedCountNum,
-        locationContext: `${clientEstablishment.type} com operação assistencial contínua.`,
-      };
-
-      const metadata = {
-        riskToLife: form.risk === 'Sim' ? true : form.risk === 'Não' ? false : null,
-        riskUnknown: form.risk === 'Não sei',
-        criticalFacility: clientEstablishment.type === 'Hospital',
-        elevatorStopped: form.functioning === 'Não está funcionando',
-        partialFailure: form.functioning === 'Sim, mas com dificuldade',
-        serviceNumber: protocol,
-        clientNotes: [...reportedProblems.map((problem) => problem === 'Outro problema' ? form.otherProblem : problem), form.riskNote, form.observation].filter(Boolean).join(' — '),
-        reportedProblems,
-        emergencyDispatchSimulation: form.risk === 'Sim',
-        distanceKm: 2.4,
-        etaMinutes: 7,
-        latitude: -23.5688,
-        longitude: -46.6487,
-        recurrence: false,
-        diagnosis: {
-          demoCode: 'MVP-CLIENT-REPORT',
-          system: elevator.system || 'Geral',
-          source: 'Indicação baseada na triagem do cliente',
-          probableOrigin: reportedProblems.includes('Porta com defeito')
-            ? 'Conjunto de portas'
-            : reportedProblems.includes('Painel/botão não responde')
-              ? 'Painel de controle'
-              : reportedProblems.includes('Barulho estranho')
-                ? 'Tração e componentes mecânicos'
-                : form.trappedPeople === 'Sim'
-                  ? 'Cabine e conjunto de portas'
-                  : 'Região relacionada ao relato',
-          suspectedRegions: reportedProblems.includes('Porta com defeito')
-            ? ['doors', 'doorOperator']
-            : reportedProblems.includes('Painel/botão não responde')
-              ? ['control', 'sensors']
-              : reportedProblems.includes('Barulho estranho')
-                ? ['machine', 'pulleys', 'belts']
-                : form.trappedPeople === 'Sim'
-                  ? ['cabin', 'doors']
-                  : ['cabin'],
-          summary: form.observation || problemDescription || 'Ocorrência aberta pelo cliente responsável com validação de passageiros presos e risco.',
-        },
-      };
-
-      const baseElevator = getElevatorById(elevator.id) || elevator;
-      const priority = calculatePriority({
-        occurrence,
-        client: clientEstablishment,
-        elevator: { ...baseElevator, status: metadata.elevatorStopped ? 'parado' : baseElevator.status },
-        metadata,
-        now,
-      });
-
-      const call = {
-        ...occurrence,
-        protocol,
-        detectedFailure: form.observation || problemDescription || `Relato de intercorrência no ${elevator.displayName}`,
-        system: elevator.system || 'Cabine / Portas',
-        functioning: form.functioning,
-        trappedPeopleAnswer: form.trappedPeople,
-        trappedCount: form.trappedCount,
-        riskAnswer: form.risk,
-        observation: form.observation,
-        riskNote: form.riskNote,
-        reportedProblems,
-        priority,
-        severity: priority.classification,
-        workflowStatus: OPERATION_STATUS.WAITING_ASSIGNMENT,
-        metadata,
-        origin: 'client',
-        completedAt: null,
-        duration: null,
-        finalDiagnosis: null,
-        solution: null,
-      };
-
+      const call = buildClientOccurrencePayload(form, clientEstablishment, displayedElevators);
       addOperationOccurrence(call);
-      setNewCallId(id);
-      window.location.hash = `/client/call/${id}`;
+      setNewCallId(call.id);
+      navigateTo(`/client/call/${call.id}`);
     } catch {
       setSubmitError(true);
     }
@@ -194,7 +93,7 @@ export default function ClientPage({ route = '/client' }) {
       <ClientSupportFlow
         elevators={displayedElevators}
         establishment={clientEstablishment}
-        onCancel={() => { window.location.hash = '/client'; }}
+        onCancel={() => navigateTo('/client')}
         onSubmit={submitSupport}
         submitError={submitError}
       />
@@ -207,7 +106,7 @@ export default function ClientPage({ route = '/client' }) {
         elevator={elevator}
         elevators={displayedElevators}
         establishment={clientEstablishment}
-        onCancel={() => { window.location.hash = '/client'; }}
+        onCancel={() => navigateTo('/client')}
         onSubmit={submitSupport}
         submitError={submitError}
       />

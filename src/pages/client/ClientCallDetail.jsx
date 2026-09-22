@@ -2,12 +2,15 @@ import { ModuleIcon } from '../../components/ModuleSidebar';
 import ClientStatusTimeline from '../../components/client/ClientStatusTimeline';
 import ProfileAvatar from '../../components/ProfileAvatar';
 import StatusBadge from '../../components/StatusBadge';
-import { clientElevators, clientEstablishment } from '../../data/clientData';
+import {
+  clientElevators,
+  clientEstablishment,
+  getDisplayElevator,
+  getTechnicianWorkflowLabel,
+} from '../../data/clientData';
 import { getTechnicianById } from '../../data/mockData';
 import { OPERATION_STATUS } from '../../data/operationStore';
 import { formatDateTime } from '../../utils/presentation';
-
-const getDisplayElevator = (elevatorId) => clientElevators.find((elevator) => elevator.id === elevatorId);
 
 export default function ClientCallDetail({ call, newCallId, statusFor }) {
   const elevator = getDisplayElevator(call.elevatorId);
@@ -81,15 +84,7 @@ export default function ClientCallDetail({ call, newCallId, statusFor }) {
                 <ProfileAvatar name={assignedTechnician.name} src={assignedTechnician.avatar} category="operators" size="lg" decorative />
                 <div>
                   <p className="page-header__subtitle mb-1">
-                    {workflow === OPERATION_STATUS.TRAVELING
-                      ? 'Técnico a caminho'
-                      : workflow === OPERATION_STATUS.ON_SITE
-                        ? 'Técnico no local'
-                        : workflow === OPERATION_STATUS.MAINTENANCE
-                          ? 'Técnico realizando atendimento'
-                          : isResolved
-                            ? 'Atendimento concluído'
-                            : 'Técnico atribuído'}
+                    {getTechnicianWorkflowLabel(workflow, isResolved)}
                   </p>
                   <h3 className="fs-5 mb-1">{assignedTechnician.name}</h3>
                   {workflow === OPERATION_STATUS.TRAVELING && (

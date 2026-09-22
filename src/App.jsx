@@ -14,7 +14,7 @@ const routeMap = {
   '/sobre': AboutPage,
 };
 
-const getCurrentRoute = () => window.location.hash.replace('#', '') || '/';
+import { getCurrentRoute } from './utils/navigation';
 
 const RouteLoader = () => (
   <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>

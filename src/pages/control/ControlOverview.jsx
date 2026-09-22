@@ -6,6 +6,7 @@ import ControlOperationsMap from '../../components/control/ControlOperationsMap'
 import useDialogFocus from '../../hooks/useDialogFocus';
 import { formatElapsedMinutes } from '../../utils/presentation';
 import { OPERATION_STATUS } from '../../data/operationStore';
+import { navigateTo } from '../../utils/navigation';
 
 import {
   buildOccurrenceAlert,
@@ -107,7 +108,7 @@ export default function ControlOverview({ occurrences, technicians, onSelectOccu
                     <time>{formatElapsedMinutes(occurrence.priority?.elapsedMinutes ?? 0)}</time>
                     <button className="control-urgent__action" type="button" onClick={() => {
                       if (actionType === 'reassign') onReassignOccurrence(occurrence.id);
-                      else if (actionType === 'elevator-history') window.location.hash = `#/control/elevators?history=${encodeURIComponent(elevatorId)}`;
+                      else if (actionType === 'elevator-history') navigateTo('/control/elevators', { history: elevatorId });
                       else onSelectOccurrence(occurrence.id);
                     }}>{action}</button>
                   </footer>

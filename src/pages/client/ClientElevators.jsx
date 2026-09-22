@@ -1,4 +1,5 @@
 import ClientElevatorCard from '../../components/client/ClientElevatorCard';
+import { navigateTo } from '../../utils/navigation';
 
 export default function ClientElevators({ displayedElevators }) {
   return (
@@ -15,8 +16,8 @@ export default function ClientElevators({ displayedElevators }) {
             <ClientElevatorCard
               elevator={elevator}
               activeCall={elevator.activeCall}
-              onSupport={(id) => { window.location.hash = `/client/support/${id}`; }}
-              onViewCall={(callId) => { window.location.hash = `/client/call/${callId}`; }}
+              onSupport={(id) => navigateTo(`/client/support/${id}`)}
+              onViewCall={(callId) => navigateTo(`/client/call/${callId}`)}
             />
           </div>
         ))}
