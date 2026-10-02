@@ -227,7 +227,7 @@ export default function Elevator3DViewer({ diagnosis, severity }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const { modelUrl, modelFormat, dynamicRegions, displayNameMap, registerParts } = useModelUpload();
+  const { modelUrl = null, modelFormat = null, dynamicRegions = [], displayNameMap = {}, registerParts = () => {} } = useModelUpload() || {};
 
   // Keep a ref that always holds the latest diagnosis to avoid stale closures
   const diagnosisRef = useRef(diagnosis);
@@ -235,7 +235,7 @@ export default function Elevator3DViewer({ diagnosis, severity }) {
 
   // Build the region→3D mapping from dynamic regions
   const regionTo3DObjects = useMemo(
-    () => Object.fromEntries(dynamicRegions.map((r) => [r.id, r.meshNames])),
+    () => Object.fromEntries((dynamicRegions || []).map((r) => [r?.id, r?.meshNames || []]).filter(([id]) => Boolean(id))),
     [dynamicRegions],
   );
   const regionTo3DObjectsRef = useRef(regionTo3DObjects);
@@ -467,7 +467,9 @@ export default function Elevator3DViewer({ diagnosis, severity }) {
   useEffect(() => {
     if (!modelRef.current) return;
     // Recompute regionTo3DObjects from latest dynamicRegions
-    const latestMapping = Object.fromEntries(dynamicRegions.map((r) => [r.id, r.meshNames]));
+    const latestMapping = Object.fromEntries(
+      (dynamicRegions || []).map((r) => [r?.id, r?.meshNames || []]).filter(([id]) => Boolean(id))
+    );
     regionTo3DObjectsRef.current = latestMapping;
     const currentProblemMap = buildProblemMap(diagnosisRef.current, latestMapping);
     applyProblemMaterials(modelRef.current, currentProblemMap, problemMeshesRef);

@@ -12,14 +12,14 @@ const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
  *   the model's parts) and the 3D wireframe viewer with tabs to switch
  */
 export default function ElevatorModelViewer({ diagnosis, severity }) {
-  const { modelUrl, dynamicRegions, displayNameMap } = useModelUpload();
+  const { modelUrl = null, dynamicRegions = [], displayNameMap = {} } = useModelUpload() || {};
   const suspectedRegions = diagnosis?.suspectedRegions || [];
-  const initialRegion = suspectedRegions[0] || (dynamicRegions[0]?.id ?? '');
+  const initialRegion = suspectedRegions[0] || (dynamicRegions?.[0]?.id ?? '');
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);
   const [viewMode, setViewMode] = useState('3d');
 
   // Use dynamic regions from the uploaded model
-  const regions = dynamicRegions;
+  const regions = dynamicRegions || [];
 
   // Re-export for external consumers (OperatorServicePage)
   // They now get dynamic regions via context

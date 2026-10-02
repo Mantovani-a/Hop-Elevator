@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { translateMeshName, buildDisplayNameMap } from '../utils/modelNameTranslator';
+import defaultModelUrl from '../assets/models/HOPElevador.glb?url';
 
 /**
  * IndexedDB helpers — store uploaded model blobs so they survive page reloads.
@@ -11,15 +12,22 @@ const MODEL_KEY = 'current-model';
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
+    try {
+      if (typeof indexedDB === 'undefined') {
+        return reject(new Error('IndexedDB indisponível neste ambiente.'));
       }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Falha ao abrir IndexedDB.'));
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -260,13 +268,22 @@ export function ModelUploadProvider({ children }) {
   }, [modelUrl]);
 
   const removeModel = useCallback(async () => {
-    if (modelUrl) URL.revokeObjectURL(modelUrl);
+    if (modelUrl && modelUrl.startsWith('blob:')) URL.revokeObjectURL(modelUrl);
     setModelUrl(null);
     setModelFormat(null);
     setModelFileName(null);
     setParts([]);
     setError(null);
     await clearModelFromDB().catch(() => {});
+  }, [modelUrl]);
+
+  const loadDefaultModel = useCallback(() => {
+    if (modelUrl && modelUrl.startsWith('blob:')) URL.revokeObjectURL(modelUrl);
+    setModelUrl(defaultModelUrl);
+    setModelFormat('glb');
+    setModelFileName('HOPElevador.glb (Padrão)');
+    setParts([]);
+    setError(null);
   }, [modelUrl]);
 
   /**
@@ -289,9 +306,10 @@ export function ModelUploadProvider({ children }) {
     error,
     restoredFromDB,
     uploadModel,
+    loadDefaultModel,
     removeModel,
     registerParts,
-  }), [modelUrl, modelFormat, modelFileName, parts, displayNameMap, dynamicRegions, isProcessing, error, restoredFromDB, uploadModel, removeModel, registerParts]);
+  }), [modelUrl, modelFormat, modelFileName, parts, displayNameMap, dynamicRegions, isProcessing, error, restoredFromDB, uploadModel, loadDefaultModel, removeModel, registerParts]);
 
   return (
     <ModelUploadContext.Provider value={value}>

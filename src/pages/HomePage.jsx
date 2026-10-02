@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import HopLogo from '../components/HopLogo';
 import ThemeToggle from '../components/ThemeToggle';
 import { resetOperationState } from '../data/operationStore';
@@ -27,9 +28,17 @@ const experiences = [
 ];
 
 export default function HomePage() {
+  const [restored, setRestored] = useState(false);
+
   const restoreDemoData = () => {
     if (!window.confirm('Restaurar ocorrências e estados para o início da demonstração?')) return;
-    resetOperationState();
+    try {
+      resetOperationState();
+      setRestored(true);
+      setTimeout(() => setRestored(false), 3000);
+    } catch {
+      window.location.reload();
+    }
   };
 
   return (
@@ -62,8 +71,8 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-        <button className="home-reset-action" type="button" onClick={restoreDemoData}>
-          Restaurar dados de demonstração
+        <button className={`home-reset-action${restored ? ' text-success fw-bold' : ''}`} type="button" onClick={restoreDemoData}>
+          {restored ? '✓ Dados de demonstração restaurados com sucesso!' : 'Restaurar dados de demonstração'}
         </button>
       </section>
     </main>

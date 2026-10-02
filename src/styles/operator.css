@@ -1031,6 +1031,20 @@
   }
 }
 
+.model-upload-panel__btn--secondary {
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: none;
+
+  &:hover {
+    color: var(--color-on-primary);
+    background: var(--color-primary-action);
+    border-color: var(--color-primary-action);
+    box-shadow: 0 4px 14px rgba(49, 87, 255, 0.25);
+  }
+}
+
 .model-upload-panel__hint {
   margin: 0;
   color: var(--color-text-muted);

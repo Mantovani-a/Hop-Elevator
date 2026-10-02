@@ -66,56 +66,71 @@ export const createInitialOperationState = (now = new Date()) => {
 
 export const validateAndSanitizeOccurrence = (occ, index = 0, now = new Date()) => {
   if (!occ || typeof occ !== 'object') return null;
-  const clientId = occ.clientId || 'CLI-001';
-  const elevatorId = occ.elevatorId || 'ELV-001';
-  const client = clientById(clientId) || clients[0];
-  const elevator = elevatorById(elevatorId) || elevators[0];
-  const templateMeta = operatorOccurrenceMetadata[occ.id] || {};
-  const metadata = {
-    distanceKm: 2.4,
-    etaMinutes: 10,
-    serviceNumber: `HOP-${1100 + index}`,
-    ...templateMeta,
-    ...(occ.metadata || {}),
-  };
+  try {
+    const clientId = occ.clientId || 'CLI-001';
+    const elevatorId = occ.elevatorId || 'ELV-001';
+    const client = clientById(clientId) || clients[0];
+    const elevator = elevatorById(elevatorId) || elevators[0];
+    const templateMeta = operatorOccurrenceMetadata[occ.id] || {};
+    const metadata = {
+      distanceKm: 2.4,
+      etaMinutes: 10,
+      serviceNumber: `HOP-${1100 + index}`,
+      ...templateMeta,
+      ...(occ.metadata || {}),
+    };
 
-  const priority = calculatePriority({ occurrence: { ...occ, clientId, elevatorId }, client, elevator, metadata, now });
+    let priority;
+    try {
+      priority = calculatePriority({ occurrence: { ...occ, clientId, elevatorId }, client, elevator, metadata, now });
+    } catch {
+      priority = { score: 15, classification: 'baixa', slaMinutes: 180, label: 'Baixa prioridade' };
+    }
 
-  const workflowStatus = occ.workflowStatus || initialWorkflowStatus(occ);
+    const workflowStatus = occ.workflowStatus || initialWorkflowStatus(occ);
 
-  return {
-    ...occ,
-    id: occ.id || `OCC-AUTO-${index}`,
-    clientId,
-    elevatorId,
-    description: occ.description || 'Intercorrência reportada no equipamento.',
-    protocol: occ.protocol || metadata.serviceNumber || `HOP-${1100 + index}`,
-    time: occ.time || now.toISOString(),
-    trappedPeople: Number(occ.trappedPeople) || 0,
-    severity: occ.severity || priority.classification || 'baixa',
-    status: occ.status || 'aberta',
-    technicianId: occ.technicianId || null,
-    origin: occ.origin || 'mock',
-    metadata,
-    priority,
-    workflowStatus,
-    completedAt: workflowStatus === OPERATION_STATUS.RESOLVED ? (occ.completedAt || occ.time || now.toISOString()) : null,
-    duration: workflowStatus === OPERATION_STATUS.RESOLVED ? (occ.duration || computeDuration(occ.time, occ.completedAt || occ.time)) : null,
-  };
+    return {
+      ...occ,
+      id: occ.id || `OCC-AUTO-${index}`,
+      clientId,
+      elevatorId,
+      description: occ.description || 'Intercorrência reportada no equipamento.',
+      protocol: occ.protocol || metadata.serviceNumber || `HOP-${1100 + index}`,
+      time: occ.time || now.toISOString(),
+      trappedPeople: Number(occ.trappedPeople) || 0,
+      severity: occ.severity || priority?.classification || 'baixa',
+      status: occ.status || 'aberta',
+      technicianId: occ.technicianId || null,
+      origin: occ.origin || 'mock',
+      metadata,
+      priority: priority || { score: 15, classification: 'baixa', slaMinutes: 180 },
+      workflowStatus,
+      completedAt: workflowStatus === OPERATION_STATUS.RESOLVED ? (occ.completedAt || occ.time || now.toISOString()) : null,
+      duration: workflowStatus === OPERATION_STATUS.RESOLVED ? (occ.duration || computeDuration(occ.time, occ.completedAt || occ.time)) : null,
+    };
+  } catch (err) {
+    console.warn('HOP: Erro ao sanitizar ocorrência, ignorando item inconsistente:', err);
+    return null;
+  }
 };
 
 const normalizeState = (state, now = new Date()) => {
-  const rawOccurrences = Array.isArray(state?.occurrences) ? state.occurrences : [];
-  const occurrences = rawOccurrences
-    .map((occ, idx) => validateAndSanitizeOccurrence(occ, idx, now))
-    .filter(Boolean);
+  try {
+    const rawOccurrences = Array.isArray(state?.occurrences) ? state.occurrences : [];
+    const occurrences = rawOccurrences
+      .map((occ, idx) => validateAndSanitizeOccurrence(occ, idx, now))
+      .filter(Boolean);
 
-  return {
-    version: 5,
-    updatedAt: state?.updatedAt || now.toISOString(),
-    operatorShiftActive: state?.operatorShiftActive !== false,
-    occurrences: occurrences.length ? occurrences : createInitialOperationState(now).occurrences,
-  };
+    return {
+      version: 5,
+      updatedAt: state?.updatedAt || now.toISOString(),
+      operatorShiftActive: state?.operatorShiftActive !== false,
+      occurrences: occurrences.length ? occurrences : createInitialOperationState(now).occurrences,
+    };
+  } catch (err) {
+    console.warn('HOP: Falha ao normalizar estado. Retornando estado inicial limpo.', err);
+    return createInitialOperationState(now);
+  }
 };
 
 const cacheState = (state) => {
@@ -126,17 +141,21 @@ const cacheState = (state) => {
 
 const readOperationState = () => {
   try {
-    window.localStorage.removeItem('hop-shared-operation-v1');
-    window.localStorage.removeItem('hop-shared-operation-v2');
-    window.localStorage.removeItem('hop-shared-operation-v3');
-    window.localStorage.removeItem('hop-shared-operation-v4');
+    ['hop-shared-operation-v1', 'hop-shared-operation-v2', 'hop-shared-operation-v3', 'hop-shared-operation-v4'].forEach((k) => {
+      try { window.localStorage.removeItem(k); } catch { /* noop */ }
+    });
+
     const stored = window.localStorage.getItem(OPERATION_STORAGE_KEY);
     if (stored === cachedRawState && cachedOperationState) return cachedOperationState;
+
     if (stored) {
       let parsed = null;
       try {
         parsed = JSON.parse(stored);
       } catch {
+        // JSON corrompido: auto-purga silenciosa
+        console.warn('HOP: JSON corrompido no localStorage. Realizando auto-purga.');
+        window.localStorage.removeItem(OPERATION_STORAGE_KEY);
         parsed = null;
       }
 
@@ -146,20 +165,26 @@ const readOperationState = () => {
 
         if (!isStale) {
           const sanitizedState = normalizeState(parsed);
-          cachedOperationState = sanitizedState;
-          cachedRawState = JSON.stringify(sanitizedState);
-          return cachedOperationState;
+          if (sanitizedState && Array.isArray(sanitizedState.occurrences) && sanitizedState.occurrences.length > 0) {
+            cachedOperationState = sanitizedState;
+            cachedRawState = JSON.stringify(sanitizedState);
+            return cachedOperationState;
+          }
         }
 
-        // Re-ancora as ocorrências de demonstração se forem de outro dia (>12h), mantendo o MVP sempre atualizado
+        // Estado expirado (>12h) ou inconsistente: recria com estado inicial limpo preservando chamados do cliente se válidos
         const freshState = createInitialOperationState(new Date());
-        const clientCreated = (parsed.occurrences || [])
-          .filter((item) => item?.origin !== 'mock')
-          .map((item, idx) => validateAndSanitizeOccurrence(item, idx))
-          .filter(Boolean);
+        try {
+          const clientCreated = (parsed.occurrences || [])
+            .filter((item) => item?.origin !== 'mock')
+            .map((item, idx) => validateAndSanitizeOccurrence(item, idx))
+            .filter(Boolean);
 
-        if (clientCreated.length) {
-          freshState.occurrences = [...clientCreated, ...freshState.occurrences];
+          if (clientCreated.length) {
+            freshState.occurrences = [...clientCreated, ...freshState.occurrences];
+          }
+        } catch {
+          /* em caso de erro na fusão, mantém apenas o freshState */
         }
 
         const cachedFresh = cacheState(freshState);
@@ -169,10 +194,13 @@ const readOperationState = () => {
           /* mantém em memória */
         }
         return cachedFresh;
+      } else if (parsed) {
+        // Estrutura inválida encontrada: auto-purga
+        try { window.localStorage.removeItem(OPERATION_STORAGE_KEY); } catch { /* noop */ }
       }
     }
 
-    // Se não há dados salvos ou estavam corrompidos, inicia com o estado limpo
+    // Se não há dados salvos ou foram purgados, inicia com estado limpo
     const initialState = createInitialOperationState();
     const cachedInitialState = cacheState(initialState);
     try {
@@ -182,27 +210,39 @@ const readOperationState = () => {
     }
     return cachedInitialState;
   } catch (err) {
-    console.warn('HOP: Falha ao ler operationState do localStorage. Usando estado inicial limpo.', err);
+    console.warn('HOP: Falha ao ler operationState do localStorage. Auto-purgando e usando estado inicial limpo.', err);
+    try { window.localStorage.removeItem(OPERATION_STORAGE_KEY); } catch { /* noop */ }
     if (!cachedOperationState) cacheState(createInitialOperationState());
     return cachedOperationState;
   }
 };
 
 const writeOperationState = (state, { force = false } = {}) => {
-  const nextState = { ...normalizeState(state), updatedAt: new Date().toISOString() };
-  const currentState = readOperationState();
-  if (!force
-    && currentState.operatorShiftActive === nextState.operatorShiftActive
-    && JSON.stringify(currentState.occurrences) === JSON.stringify(nextState.occurrences)) return currentState;
-  const cachedNextState = cacheState(nextState);
   try {
-    window.localStorage.setItem(OPERATION_STORAGE_KEY, cachedRawState);
-  } catch {
-    // O estado em memória mantém o MVP funcional quando o armazenamento do navegador está indisponível.
+    const nextState = { ...normalizeState(state), updatedAt: new Date().toISOString() };
+    const currentState = readOperationState();
+    if (!force
+      && currentState.operatorShiftActive === nextState.operatorShiftActive
+      && JSON.stringify(currentState.occurrences) === JSON.stringify(nextState.occurrences)) return currentState;
+    const cachedNextState = cacheState(nextState);
+    try {
+      window.localStorage.setItem(OPERATION_STORAGE_KEY, cachedRawState);
+    } catch (storageError) {
+      console.warn('HOP: localStorage indisponível ou limite atingido. Estado mantido em memória.', storageError);
+    }
+    if (!force) {
+      try {
+        publishOperationNotifications(currentState, cachedNextState);
+      } catch (notifErr) {
+        console.warn('HOP: Falha ao publicar notificações:', notifErr);
+      }
+    }
+    window.dispatchEvent(new CustomEvent(OPERATION_UPDATED_EVENT));
+    return cachedNextState;
+  } catch (err) {
+    console.error('HOP: Erro na escrita do estado operacional. Recuperando estado seguro.', err);
+    return cachedOperationState || cacheState(createInitialOperationState());
   }
-  if (!force) publishOperationNotifications(currentState, cachedNextState);
-  window.dispatchEvent(new CustomEvent(OPERATION_UPDATED_EVENT));
-  return cachedNextState;
 };
 
 /**
@@ -213,19 +253,29 @@ const writeOperationState = (state, { force = false } = {}) => {
  * @returns {Object} Updated shared operation state snapshot.
  */
 export const addOperationOccurrence = (occurrence) => {
-  const state = readOperationState();
-  const sanitizedOccurrence = validateAndSanitizeOccurrence(occurrence, 0);
-  if (!sanitizedOccurrence) return state;
+  try {
+    const state = readOperationState();
+    const sanitizedOccurrence = validateAndSanitizeOccurrence(occurrence, 0);
+    if (!sanitizedOccurrence) return state;
 
-  const preparedOccurrence = resolveAutomaticDispatch(sanitizedOccurrence, {
-    operatorShiftActive: state.operatorShiftActive,
-    occurrences: state.occurrences,
-  });
+    let preparedOccurrence = sanitizedOccurrence;
+    try {
+      preparedOccurrence = resolveAutomaticDispatch(sanitizedOccurrence, {
+        operatorShiftActive: state.operatorShiftActive,
+        occurrences: state.occurrences,
+      });
+    } catch (dispatchErr) {
+      console.warn('HOP: Falha no despacho automático, mantendo ocorrência sem atribuição automática:', dispatchErr);
+    }
 
-  return writeOperationState({
-    ...state,
-    occurrences: [preparedOccurrence, ...state.occurrences.filter((item) => item.id !== preparedOccurrence.id)],
-  });
+    return writeOperationState({
+      ...state,
+      occurrences: [preparedOccurrence, ...state.occurrences.filter((item) => item.id !== preparedOccurrence.id)],
+    });
+  } catch (err) {
+    console.error('HOP: Erro ao adicionar ocorrência:', err);
+    return readOperationState();
+  }
 };
 
 /**
@@ -237,17 +287,22 @@ export const addOperationOccurrence = (occurrence) => {
  * @returns {Object} Updated shared operation state snapshot.
  */
 export const updateOperationOccurrence = (occurrenceId, changes) => {
-  const state = readOperationState();
-  let changed = false;
-  const occurrences = state.occurrences.map((occurrence) => {
-    if (occurrence.id !== occurrenceId) return occurrence;
-    const occurrenceChanges = typeof changes === 'function' ? changes(occurrence) : changes;
-    if (!occurrenceChanges || Object.entries(occurrenceChanges).every(([key, value]) => Object.is(occurrence[key], value))) return occurrence;
-    changed = true;
-    return { ...occurrence, ...occurrenceChanges };
-  });
-  if (!changed) return state;
-  return writeOperationState({ ...state, occurrences });
+  try {
+    const state = readOperationState();
+    let changed = false;
+    const occurrences = state.occurrences.map((occurrence) => {
+      if (occurrence.id !== occurrenceId) return occurrence;
+      const occurrenceChanges = typeof changes === 'function' ? changes(occurrence) : changes;
+      if (!occurrenceChanges || Object.entries(occurrenceChanges).every(([key, value]) => Object.is(occurrence[key], value))) return occurrence;
+      changed = true;
+      return { ...occurrence, ...occurrenceChanges };
+    });
+    if (!changed) return state;
+    return writeOperationState({ ...state, occurrences });
+  } catch (err) {
+    console.error('HOP: Erro ao atualizar ocorrência:', err);
+    return readOperationState();
+  }
 };
 
 /**

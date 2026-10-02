@@ -12,7 +12,7 @@ import { useModelUpload } from '../../context/ModelUploadContext';
 
 export default function OperatorServicePage({ occurrence, workflowStatus, onAdvance, onComplete }) {
   const [completionOpen, setCompletionOpen] = useState(false);
-  const { dynamicRegions } = useModelUpload();
+  const { dynamicRegions = [] } = useModelUpload() || {};
   if (!occurrence) {
     return <OperatorStateMessage type="error" title="Não foi possível abrir o atendimento">Volte para a fila e selecione novamente a ocorrência atribuída.</OperatorStateMessage>;
   }
@@ -21,7 +21,7 @@ export default function OperatorServicePage({ occurrence, workflowStatus, onAdva
   const isMaintenance = [OPERATION_STATUS.ON_SITE, OPERATION_STATUS.MAINTENANCE, OPERATION_STATUS.RESOLVED].includes(workflowStatus);
   const diagnosis = occurrence.metadata?.diagnosis || {};
   const affectedComponents = (diagnosis.suspectedRegions || [])
-    .map((regionId) => dynamicRegions.find((region) => region.id === regionId)?.label)
+    .map((regionId) => (dynamicRegions || []).find((region) => region?.id === regionId)?.label)
     .filter(Boolean);
   const signals = [
     diagnosis.source || 'Triagem da ocorrência',

@@ -9,7 +9,7 @@ const MAX_SIZE_MB = 150;
  * Shown when no model has been loaded yet.
  */
 export default function ModelUploadPanel() {
-  const { uploadModel, isProcessing, error, modelFileName, removeModel } = useModelUpload();
+  const { uploadModel, isProcessing, error, modelFileName, removeModel, loadDefaultModel } = useModelUpload();
   const inputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -122,19 +122,31 @@ export default function ModelUploadPanel() {
           Arraste um arquivo <strong>.glb</strong>, <strong>.fbx</strong> ou <strong>.obj</strong> para esta área ou clique para selecionar do seu computador.
         </p>
 
-        <label className="model-upload-panel__btn" tabIndex={0}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Selecionar arquivo
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".glb,.gltf,.fbx,.obj"
-            onChange={handleInputChange}
-            style={{ display: 'none' }}
-          />
-        </label>
+        <div className="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-2">
+          <label className="model-upload-panel__btn" tabIndex={0}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Selecionar arquivo
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".glb,.gltf,.fbx,.obj"
+              onChange={handleInputChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button
+            type="button"
+            className="model-upload-panel__btn model-upload-panel__btn--secondary"
+            onClick={loadDefaultModel}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="none"/>
+            </svg>
+            Carregar modelo padrão (HOPElevador.glb)
+          </button>
+        </div>
 
         <p className="model-upload-panel__hint">
           Limite de {MAX_SIZE_MB}MB · O sistema identificará automaticamente as peças do modelo

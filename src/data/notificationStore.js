@@ -40,8 +40,16 @@ const readNotificationState = () => {
     const stored = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
     if (stored === cachedRawState && cachedNotificationState) return cachedNotificationState;
     if (!stored) return cachedNotificationState || cacheState(emptyState);
-    return cacheState(JSON.parse(stored));
+    let parsed = null;
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      try { window.localStorage.removeItem(NOTIFICATION_STORAGE_KEY); } catch { /* noop */ }
+      return cachedNotificationState || cacheState(emptyState);
+    }
+    return cacheState(parsed);
   } catch {
+    try { window.localStorage.removeItem(NOTIFICATION_STORAGE_KEY); } catch { /* noop */ }
     return cachedNotificationState || cacheState(emptyState);
   }
 };

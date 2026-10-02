@@ -10,11 +10,21 @@ const RESOLVED_URGENT_STORAGE_KEY = 'hop-control-resolved-urgent-v2';
 
 export const readResolvedAlerts = () => {
   try {
-    window.localStorage.removeItem('hop-control-dismissed-urgent-v1');
-    window.localStorage.removeItem('hop-control-resolved-urgent-v1');
-    const stored = JSON.parse(window.localStorage.getItem(RESOLVED_URGENT_STORAGE_KEY) || '[]');
+    ['hop-control-dismissed-urgent-v1', 'hop-control-resolved-urgent-v1'].forEach((k) => {
+      try { window.localStorage.removeItem(k); } catch { /* noop */ }
+    });
+    const raw = window.localStorage.getItem(RESOLVED_URGENT_STORAGE_KEY);
+    if (!raw) return [];
+    let stored = [];
+    try {
+      stored = JSON.parse(raw);
+    } catch {
+      try { window.localStorage.removeItem(RESOLVED_URGENT_STORAGE_KEY); } catch { /* noop */ }
+      return [];
+    }
     return Array.isArray(stored) ? stored.filter((item) => typeof item === 'string') : [];
   } catch {
+    try { window.localStorage.removeItem(RESOLVED_URGENT_STORAGE_KEY); } catch { /* noop */ }
     return [];
   }
 };
