@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import OperatorStateMessage from '../../components/operator/OperatorStateMessage';
 import OperatorCompletionForm from '../../components/operator/OperatorCompletionForm';
-import ElevatorModelViewer, { elevatorRegions } from '../../components/operator/ElevatorModelViewer';
+import ElevatorModelViewer from '../../components/operator/ElevatorModelViewer';
 import PriorityIndicator from '../../components/operator/PriorityIndicator';
 import RouteMap from '../../components/operator/RouteMap';
 import TechnicalInfoPanel from '../../components/operator/TechnicalInfoPanel';
 import StatusBadge from '../../components/StatusBadge';
 import { getWorkflowStep } from '../../utils/operatorWorkflow';
 import { OPERATION_STATUS } from '../../data/operationStatus';
+import { useModelUpload } from '../../context/ModelUploadContext';
 
 export default function OperatorServicePage({ occurrence, workflowStatus, onAdvance, onComplete }) {
   const [completionOpen, setCompletionOpen] = useState(false);
+  const { dynamicRegions } = useModelUpload();
   if (!occurrence) {
     return <OperatorStateMessage type="error" title="Não foi possível abrir o atendimento">Volte para a fila e selecione novamente a ocorrência atribuída.</OperatorStateMessage>;
   }
@@ -19,7 +21,7 @@ export default function OperatorServicePage({ occurrence, workflowStatus, onAdva
   const isMaintenance = [OPERATION_STATUS.ON_SITE, OPERATION_STATUS.MAINTENANCE, OPERATION_STATUS.RESOLVED].includes(workflowStatus);
   const diagnosis = occurrence.metadata?.diagnosis || {};
   const affectedComponents = (diagnosis.suspectedRegions || [])
-    .map((regionId) => elevatorRegions.find((region) => region.id === regionId)?.label)
+    .map((regionId) => dynamicRegions.find((region) => region.id === regionId)?.label)
     .filter(Boolean);
   const signals = [
     diagnosis.source || 'Triagem da ocorrência',
