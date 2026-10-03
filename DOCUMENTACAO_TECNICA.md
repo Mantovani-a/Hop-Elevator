@@ -195,11 +195,27 @@ O mapa operacional utiliza **Leaflet** com tiles oficiais do **OpenStreetMap** (
 
 `geoCoordinates.js` centraliza as latitudes e longitudes reais dos estabelecimentos e técnicos pela cidade. `buildGeoRoute(start, end)` calcula a rota ao longo dos eixos viários. O Operator (`RouteMap.jsx`) enquadra a rota automaticamente (`map.fitBounds`) e oferece suporte a geolocalização real do navegador (`navigator.geolocation`).
 
-## 12. Modelo 2D e diagnóstico
+## 12. Visualização 2D/3D e Modelos por Equipamento
 
-`Elevator2DModel.jsx` recebe componentes suspeitos e gravidade, destaca as áreas relacionadas por contorno, indicador e texto, e mostra somente dados operacionais do item selecionado. O mapeamento entre falha e componente provável fica em `operatorData.js`.
+O ecossistema HOP disponibiliza visualização híbrida 2D esquemática e 3D wireframe interativa (Three.js), com suporte à associação e persistência de modelos 3D por equipamento (`elevatorId`) via **IndexedDB** (`hop-elevator-models` / store `models`).
 
-Durante o deslocamento, `OperatorServicePage.jsx` organiza a área principal em um grid 2 × 2 a partir de 992 px: rota e diagnóstico preliminar na primeira linha; informações técnicas e modelo 2D na segunda. Abaixo desse breakpoint, os quatro blocos são empilhados nessa ordem. Ao clicar em **Cheguei ao local**, o mapa é removido, o diagnóstico técnico completo ocupa toda a primeira linha e informações técnicas/modelo dividem a segunda, sem reservar a antiga área da rota. Use termos “possível”, “provável” e “preliminar”; códigos `MVP-*` são demonstrativos.
+### Escopo e Persistência (`ElevatorModelScope`)
+A arquitetura não utiliza um provider global de modelos em `App.jsx`. Em vez disso, o contexto é instanciado pontualmente onde o elevador está ativo através do componente `<ElevatorModelScope elevatorId={id}>`:
+- **No HOP Operator (`OperatorServicePage.jsx`):** o escopo é provido com `occurrence.elevatorId`, carregando automaticamente o modelo vinculado àquele chamado.
+- **No HOP Control (`ControlElevatorDetailModal.jsx`):** a aba "Modelo 3D & Componentes" instancia o escopo com o `elevator.id` do equipamento inspecionado.
+
+### Formatos e Processamento de Peças
+O sistema aceita arquivos nos formatos `.glb`, `.gltf`, `.fbx` e `.obj` de até 150 MB. Ao carregar um modelo:
+1. O Three.js percorre a cena (`extractParts`), identificando malhas e geometrias cilíndricas.
+2. `modelNameTranslator.js` traduz os nomes de nós de engenharia/CAD para português humanizado.
+3. Regiões dinâmicas são agrupadas heuristicamente (`buildDynamicRegions`) e correlacionadas às hipóteses e diagnósticos da triagem.
+4. Sincronização em tempo real entre abas e escopos é realizada por eventos customizados (`hop:elevator-model-changed`) e sinalizadores em `localStorage`.
+
+### Ficha Operacional de Elevadores (HOP Control)
+No HOP Control, cada card de elevador é interativo e abre a ficha operacional completa (`ControlElevatorDetailModal.jsx`) com três visões principais:
+1. **Resumo:** KPIs do equipamento (estado, reincidência, último chamado), grupos de identificação em duas colunas e especificações técnicas.
+2. **Histórico:** Timeline cronológica de ocorrências com botão expansível acessível (`aria-expanded`), destacando diagnóstico, peças, primeira visita, duração e liberação.
+3. **Modelo 3D:** Visualizador 3D escopado com gestão de upload, substituição ou exclusão de modelo para aquele elevador.
 
 ## 13. Logos e Home
 
@@ -262,7 +278,8 @@ Passo a passo: crie o componente em `pages/<módulo>`, importe na página raiz, 
 | Fluxo de atendimento do Operator | `src/utils/operatorWorkflow.js`, `src/pages/OperatorPage.jsx`, `src/pages/operator/OperatorServicePage.jsx` |
 | Cidade, pontos e rota | `src/data/geoCoordinates.js` |
 | Interação visual do mapa | `src/components/LeafletMap.jsx`, `src/styles/map.css` |
-| Modelo 2D | `src/components/operator/Elevator2DModel.jsx` |
+| Visualização 2D/3D e modelos | `src/context/ElevatorModelContext.jsx`, `src/components/operator/ElevatorModelViewer.jsx`, `src/components/operator/Elevator3DViewer.jsx`, `src/components/operator/ModelUploadPanel.jsx` |
+| Ficha de elevadores (Control) | `src/components/control/ControlElevatorDetailModal.jsx`, `src/pages/control/ControlElevators.jsx` |
 | Estrutura comum das sidebars | `src/components/ModuleSidebar.jsx`, `src/styles/components.css` |
 | Itens dos menus Operator/Control | respectivos `src/components/*/*Shell.jsx` |
 | Home | `src/pages/HomePage.jsx`, `src/styles/components.css` |

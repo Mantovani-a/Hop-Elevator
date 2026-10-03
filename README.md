@@ -26,8 +26,8 @@ Falhas de elevadores têm contextos e riscos diferentes — de funcionamento par
 | Módulo | Público | Visão principal |
 | --- | --- | --- |
 | **HOP Client** | Clientes e Estabelecimentos | Monitoramento de elevadores em tempo real, abertura guiada de chamados com triagem de risco e acompanhamento de status. |
-| **HOP Control** | Lideranças e Operação | Central operacional com mapa, fila, técnicos, elevadores, registro de ocorrências e indicadores. |
-| **HOP Operator** | Técnicos de campo | Turno, fila priorizada, rota, diagnóstico técnico, modelo 2D e fluxo de atendimento. |
+| **HOP Control** | Lideranças e Operação | Central operacional com mapa, fila, técnicos, ficha detalhada de elevadores com modelo 3D, registro de ocorrências e indicadores. |
+| **HOP Operator** | Técnicos de campo | Turno, fila priorizada, rota, diagnóstico técnico, representação 2D/3D interativa e fluxo de atendimento. |
 
 ## Fluxo integrado
 
@@ -42,7 +42,8 @@ Todos os módulos leem e atualizam a mesma base operacional no navegador. O cen�
 - recomendação e atribuição demonstrativa de técnico por proximidade e especialidade;
 - ciclo completo do chamado, da abertura à resolução, com três ações operacionais no Operator;
 - mapa operacional interativo da Grande São Paulo com OpenStreetMap e Leaflet, rota em tempo real, filtros e marcadores semânticos;
-- diagnóstico preliminar/completo e representação 2D interativa detalhada do elevador;
+- diagnóstico preliminar/completo e representação 2D/3D interativa com Three.js e modelos vinculados por equipamento;
+- ficha operacional de elevadores no HOP Control com resumo técnico, histórico em timeline expansível e visualizador 3D escopado;
 - dashboards, filas, histórico e sincronização em tempo real entre os três módulos;
 - turno e tema claro/escuro persistentes, com navegação lateral responsiva nos três módulos;
 - restauração discreta dos dados originais para repetir a demonstração.
@@ -50,11 +51,12 @@ Todos os módulos leem e atualizam a mesma base operacional no navegador. O cen�
 ## Tecnologias
 
 - React 19 e JavaScript;
+- Three.js para renderização 3D wireframe e suporte a múltiplos formatos (.glb, .gltf, .fbx, .obj);
 - Leaflet e OpenStreetMap (geolocalização operacional sem custos);
 - HTML semântico e CSS responsivo;
 - Bootstrap 5;
 - Vite;
-- APIs nativas do navegador (`localStorage`, Geolocation, Web Audio e Pointer Events).
+- APIs nativas do navegador (IndexedDB para armazenamento de modelos 3D por equipamento, `localStorage`, Geolocation, Web Audio e Pointer Events).
 
 O mapa utiliza Leaflet com tiles públicos e oficiais do OpenStreetMap, sem necessidade de chaves de API pagas ou cartão de crédito.
 
