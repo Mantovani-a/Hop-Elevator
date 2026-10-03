@@ -14,7 +14,15 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('HOP ErrorBoundary capturou um erro:', error, errorInfo);
+    console.warn('⚠️ HOP ErrorBoundary capturou um erro:', error?.message, errorInfo);
+
+    try {
+      window.sessionStorage.setItem('hop_last_error', JSON.stringify({
+        message: error?.message,
+        stack: error?.stack,
+        time: new Date().toLocaleTimeString(),
+      }));
+    } catch { /* noop */ }
 
     try {
       const now = Date.now();
@@ -45,6 +53,7 @@ export default class ErrorBoundary extends React.Component {
     try {
       resetOperationState();
       window.sessionStorage.removeItem('hop_auto_recovery_timestamp');
+      window.sessionStorage.removeItem('hop_last_error');
     } catch {
       try { window.localStorage.clear(); } catch { /* noop */ }
     }
@@ -54,11 +63,49 @@ export default class ErrorBoundary extends React.Component {
 
   handleReload = () => {
     window.sessionStorage.removeItem('hop_auto_recovery_timestamp');
+    window.sessionStorage.removeItem('hop_last_error');
     window.location.reload();
   };
 
   render() {
     if (this.state.hasError) {
+      // Enquanto está auto-recuperando (primeiros segundos), exibe uma tela de loading elegante
+      // em vez de piscar a tela de erro para o usuário
+      if (!this.state.isLoop) {
+        return (
+          <main
+            className="d-flex flex-column align-items-center justify-content-center min-vh-100 p-4"
+            style={{ backgroundColor: 'var(--color-background, #0c1017)', color: 'var(--color-text, #f0f4f8)' }}
+          >
+            <style>{`
+              @keyframes hop-pulse-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+            <div className="d-flex flex-column align-items-center text-center">
+              <div className="mb-4">
+                <HopLogo size="home" />
+              </div>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  border: '3px solid rgba(255, 255, 255, 0.12)',
+                  borderTopColor: 'var(--color-primary-action, #3b82f6)',
+                  borderRadius: '50%',
+                  animation: 'hop-pulse-spin 0.8s linear infinite',
+                  marginBottom: '1rem',
+                }}
+              />
+              <p className="text-secondary fw-semibold mb-0" style={{ fontSize: '0.92rem' }}>
+                Carregando aplicação...
+              </p>
+            </div>
+          </main>
+        );
+      }
+
       return (
         <main
           className="d-flex align-items-center justify-content-center min-vh-100 p-4"

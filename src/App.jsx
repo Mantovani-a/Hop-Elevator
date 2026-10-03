@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import HomePage from './pages/HomePage';
 import { ModelUploadProvider } from './context/ModelUploadContext';
+import { getCurrentRoute } from './utils/navigation';
 
 const ClientPage = lazy(() => import('./pages/ClientPage'));
 const ControlPage = lazy(() => import('./pages/ControlPage'));
@@ -15,11 +16,23 @@ const routeMap = {
   '/sobre': AboutPage,
 };
 
-import { getCurrentRoute } from './utils/navigation';
-
 const RouteLoader = () => (
-  <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
-    <div className="elevator-3d-loader__spinner" style={{ width: 38, height: 38 }} />
+  <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--color-background, #0c1017)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+      <div
+        style={{
+          width: '38px',
+          height: '38px',
+          border: '3px solid rgba(255, 255, 255, 0.12)',
+          borderTopColor: 'var(--color-primary-action, #3b82f6)',
+          borderRadius: '50%',
+          animation: 'hop-pulse-spin 0.8s linear infinite',
+        }}
+      />
+      <span style={{ color: 'var(--color-text-secondary, #94a3b8)', fontSize: '0.86rem', fontWeight: 600 }}>
+        Carregando tela...
+      </span>
+    </div>
   </div>
 );
 
