@@ -8,11 +8,20 @@ import TechnicalInfoPanel from '../../components/operator/TechnicalInfoPanel';
 import StatusBadge from '../../components/StatusBadge';
 import { getWorkflowStep } from '../../utils/operatorWorkflow';
 import { OPERATION_STATUS } from '../../data/operationStatus';
-import { useModelUpload } from '../../context/ModelUploadContext';
+import { ElevatorModelScope, useElevatorModel } from '../../context/ElevatorModelContext';
 
-export default function OperatorServicePage({ occurrence, workflowStatus, onAdvance, onComplete }) {
+export default function OperatorServicePage(props) {
+  const elevatorId = props.occurrence?.elevatorId || props.occurrence?.elevator?.id;
+  return (
+    <ElevatorModelScope elevatorId={elevatorId}>
+      <OperatorServiceContent {...props} />
+    </ElevatorModelScope>
+  );
+}
+
+function OperatorServiceContent({ occurrence, workflowStatus, onAdvance, onComplete }) {
   const [completionOpen, setCompletionOpen] = useState(false);
-  const { dynamicRegions = [] } = useModelUpload() || {};
+  const { dynamicRegions = [] } = useElevatorModel() || {};
   if (!occurrence) {
     return <OperatorStateMessage type="error" title="Não foi possível abrir o atendimento">Volte para a fila e selecione novamente a ocorrência atribuída.</OperatorStateMessage>;
   }
@@ -28,6 +37,7 @@ export default function OperatorServicePage({ occurrence, workflowStatus, onAdva
     occurrence.metadata?.elevatorStopped ? 'Triagem informa equipamento indisponível' : 'Triagem informa funcionamento parcial ou intermitente',
     occurrence.metadata?.recurrence ? 'Histórico demonstrativo indica possível reincidência' : 'Sem indicação de reincidência na triagem',
   ].filter(Boolean);
+
   return (
     <>
       <a className="d-inline-flex align-items-center fw-bold text-decoration-none mb-3" href={`#/operator/occurrence/${occurrence.id}`} style={{ minHeight: '44px' }}><span className="me-2" aria-hidden="true">←</span> Ver ocorrência</a>

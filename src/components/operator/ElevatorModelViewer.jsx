@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
-import { useModelUpload } from '../../context/ModelUploadContext';
+import { useElevatorModel } from '../../context/ElevatorModelContext';
 import ModelUploadPanel from './ModelUploadPanel';
 
 const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
@@ -12,7 +12,7 @@ const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
  *   the model's parts) and the 3D wireframe viewer with tabs to switch
  */
 export default function ElevatorModelViewer({ diagnosis, severity }) {
-  const { modelUrl = null, dynamicRegions = [], displayNameMap = {} } = useModelUpload() || {};
+  const { modelUrl = null, dynamicRegions = [], displayNameMap = {} } = useElevatorModel() || {};
   const suspectedRegions = diagnosis?.suspectedRegions || [];
   const initialRegion = suspectedRegions[0] || (dynamicRegions?.[0]?.id ?? '');
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);

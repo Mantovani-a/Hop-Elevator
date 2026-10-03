@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { useModelUpload } from '../../context/ModelUploadContext';
+import { useElevatorModel } from '../../context/ElevatorModelContext';
 
 const SEVERITY_COLORS = {
   'crítica': 0xff1744,
@@ -227,7 +227,7 @@ export default function Elevator3DViewer({ diagnosis, severity }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const { modelUrl = null, modelFormat = null, dynamicRegions = [], displayNameMap = {}, registerParts = () => {} } = useModelUpload() || {};
+  const { modelUrl = null, modelFormat = null, dynamicRegions = [], displayNameMap = {}, registerParts = () => {} } = useElevatorModel() || {};
 
   // Keep a ref that always holds the latest diagnosis to avoid stale closures
   const diagnosisRef = useRef(diagnosis);

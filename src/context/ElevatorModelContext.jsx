@@ -1,14 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { translateMeshName, buildDisplayNameMap } from '../utils/modelNameTranslator';
 import defaultModelUrl from '../assets/models/HOPElevador.glb?url';
 
-/**
- * IndexedDB helpers — store uploaded model blobs so they survive page reloads.
- */
 const DB_NAME = 'hop-elevator-models';
 const DB_VERSION = 1;
 const STORE_NAME = 'models';
-const MODEL_KEY = 'current-model';
+const SYNC_STORAGE_KEY = 'hop_elevator_model_sync';
+const SYNC_EVENT_NAME = 'hop:elevator-model-changed';
+export const MAX_MODEL_SIZE_MB = 150;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -31,40 +30,48 @@ function openDB() {
   });
 }
 
-async function saveModelToDB(blob, fileName) {
+async function saveModelToDB(elevatorId, data) {
+  if (!elevatorId) return;
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put({ blob, fileName, savedAt: Date.now() }, MODEL_KEY);
+    tx.objectStore(STORE_NAME).put(
+      {
+        ...data,
+        elevatorId: String(elevatorId),
+        savedAt: Date.now(),
+        revision: (data.revision || 0) + 1,
+      },
+      String(elevatorId)
+    );
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
 
-async function loadModelFromDB() {
+async function loadModelFromDB(elevatorId) {
+  if (!elevatorId) return null;
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const request = tx.objectStore(STORE_NAME).get(MODEL_KEY);
+    const request = tx.objectStore(STORE_NAME).get(String(elevatorId));
     request.onsuccess = () => resolve(request.result || null);
     request.onerror = () => reject(request.error);
   });
 }
 
-async function clearModelFromDB() {
+async function clearModelFromDB(elevatorId) {
+  if (!elevatorId) return;
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(MODEL_KEY);
+    tx.objectStore(STORE_NAME).delete(String(elevatorId));
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
 
-/**
- * Detect model format from file extension.
- */
-function detectFormat(fileName) {
+export function detectFormat(fileName) {
   const ext = (fileName || '').split('.').pop().toLowerCase();
   if (ext === 'glb' || ext === 'gltf') return 'glb';
   if (ext === 'fbx') return 'fbx';
@@ -72,33 +79,6 @@ function detectFormat(fileName) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
-const ModelUploadContext = createContext(null);
-
-export function useModelUpload() {
-  const ctx = useContext(ModelUploadContext);
-  if (!ctx) throw new Error('useModelUpload must be used inside ModelUploadProvider');
-  return ctx;
-}
-
-/**
- * @typedef {Object} ModelPart
- * @property {string} originalName  The raw node/mesh name from the 3D file.
- * @property {string} displayName   Human-readable Portuguese label.
- * @property {boolean} isCylindrical Whether the geometry was detected as cylindrical.
- */
-
-/**
- * Heuristic to detect cylindrical geometry.
- * A mesh is considered cylindrical if:
- *  - Its bounding-box width ≈ depth (aspect ratio < 1.5)
- *  - AND it has more than a threshold of faces that are not axis-aligned.
- *
- * This is an approximation — real cylinder detection would require analysing
- * face normals, but this is fast and works well for typical CAD exports.
- */
 function isCylindricalMesh(mesh) {
   if (!mesh.geometry) return false;
   mesh.geometry.computeBoundingBox();
@@ -108,13 +88,9 @@ function isCylindricalMesh(mesh) {
   const sy = bb.max.y - bb.min.y;
   const sz = bb.max.z - bb.min.z;
   const dims = [sx, sy, sz].sort((a, b) => a - b);
-  // Two smallest dimensions should be roughly equal (circular cross-section)
   if (dims[0] < 0.001) return false;
   const ratio = dims[1] / dims[0];
-  // Allow some tolerance
   if (ratio > 0.6 && ratio < 1.67) {
-    // The mesh has a somewhat equal cross-section — likely cylindrical
-    // Additional heuristic: vertex count relative to face count
     const posAttr = mesh.geometry.getAttribute('position');
     if (posAttr && posAttr.count > 8) {
       return true;
@@ -123,12 +99,6 @@ function isCylindricalMesh(mesh) {
   return false;
 }
 
-/**
- * Walk a loaded THREE.js scene and extract all mesh parts.
- *
- * @param {THREE.Object3D} scene The loaded 3D model scene.
- * @returns {ModelPart[]}
- */
 function extractParts(scene) {
   const parts = [];
   const seenNames = new Set();
@@ -149,10 +119,6 @@ function extractParts(scene) {
   return parts;
 }
 
-/**
- * Build dynamic elevator regions from extracted parts.
- * Groups parts heuristically by keyword similarity.
- */
 function buildDynamicRegions(parts) {
   const regionRules = [
     { id: 'machine', label: 'Máquina de Tração', keywords: [/maquinario|traction.*machine|traction.*motor|motor.*tração|maquina.*traç/i, /apoio.*traç|traction.*support/i, /ponte.*traç|traction.*bridge/i] },
@@ -191,7 +157,6 @@ function buildDynamicRegions(parts) {
     }
   }
 
-  // Unassigned parts get their own individual region
   for (const part of parts) {
     if (assigned.has(part.originalName)) continue;
     regions.push({
@@ -204,10 +169,31 @@ function buildDynamicRegions(parts) {
   return regions;
 }
 
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
-export function ModelUploadProvider({ children }) {
+const ElevatorModelContext = createContext(null);
+
+const fallbackContext = {
+  elevatorId: null,
+  modelUrl: null,
+  modelFormat: null,
+  modelFileName: null,
+  parts: [],
+  displayNameMap: {},
+  dynamicRegions: [],
+  isProcessing: false,
+  error: null,
+  restoredFromDB: true,
+  uploadModel: async () => {},
+  loadDefaultModel: () => {},
+  removeModel: async () => {},
+  registerParts: () => {},
+};
+
+export function useElevatorModel() {
+  const ctx = useContext(ElevatorModelContext);
+  return ctx || fallbackContext;
+}
+
+export function ElevatorModelScope({ elevatorId, children }) {
   const [modelUrl, setModelUrl] = useState(null);
   const [modelFormat, setModelFormat] = useState(null);
   const [modelFileName, setModelFileName] = useState(null);
@@ -216,86 +202,168 @@ export function ModelUploadProvider({ children }) {
   const [error, setError] = useState(null);
   const [restoredFromDB, setRestoredFromDB] = useState(false);
 
-  // Display-name map derived from parts
-  const displayNameMap = useMemo(() => buildDisplayNameMap(parts.map((p) => p.originalName)), [parts]);
+  const modelUrlRef = useRef(null);
+  modelUrlRef.current = modelUrl;
 
-  // Dynamic regions derived from parts
-  const dynamicRegions = useMemo(() => buildDynamicRegions(parts), [parts]);
+  const currentRecordRef = useRef(null);
 
-  // Restore persisted model on mount
-  useEffect(() => {
-    let cancelled = false;
-    loadModelFromDB().then((saved) => {
-      if (cancelled || !saved) { setRestoredFromDB(true); return; }
-      const url = URL.createObjectURL(saved.blob);
-      const format = detectFormat(saved.fileName);
-      if (!cancelled) {
-        setModelUrl(url);
-        setModelFormat(format);
-        setModelFileName(saved.fileName);
-        setRestoredFromDB(true);
-      }
-    }).catch(() => { if (!cancelled) setRestoredFromDB(true); });
-    return () => { cancelled = true; };
+  const cleanupUrl = useCallback(() => {
+    if (modelUrlRef.current && modelUrlRef.current.startsWith('blob:')) {
+      URL.revokeObjectURL(modelUrlRef.current);
+    }
+    modelUrlRef.current = null;
   }, []);
 
+  const notifyChange = useCallback((id) => {
+    try {
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT_NAME, { detail: { elevatorId: id } }));
+      localStorage.setItem(SYNC_STORAGE_KEY, `${id}:${Date.now()}`);
+    } catch {
+      // Local storage or event dispatch fallback
+    }
+  }, []);
+
+  const loadFromDB = useCallback(async (targetId) => {
+    if (!targetId) {
+      setRestoredFromDB(true);
+      return;
+    }
+    setRestoredFromDB(false);
+    try {
+      const saved = await loadModelFromDB(targetId);
+      cleanupUrl();
+      if (saved && saved.blob) {
+        const url = URL.createObjectURL(saved.blob);
+        modelUrlRef.current = url;
+        currentRecordRef.current = saved;
+        setModelUrl(url);
+        setModelFormat(saved.format || detectFormat(saved.fileName));
+        setModelFileName(saved.fileName);
+        setParts(Array.isArray(saved.parts) ? saved.parts : []);
+      } else {
+        currentRecordRef.current = null;
+        setModelUrl(null);
+        setModelFormat(null);
+        setModelFileName(null);
+        setParts([]);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar modelo do elevador:', err);
+    } finally {
+      setRestoredFromDB(true);
+    }
+  }, [cleanupUrl]);
+
+  useEffect(() => {
+    loadFromDB(elevatorId);
+
+    const handleCustomSync = (event) => {
+      const changedId = event?.detail?.elevatorId;
+      if (String(changedId) === String(elevatorId)) {
+        loadFromDB(elevatorId);
+      }
+    };
+
+    const handleStorageSync = (event) => {
+      if (event.key === SYNC_STORAGE_KEY && event.newValue) {
+        const [changedId] = event.newValue.split(':');
+        if (String(changedId) === String(elevatorId)) {
+          loadFromDB(elevatorId);
+        }
+      }
+    };
+
+    window.addEventListener(SYNC_EVENT_NAME, handleCustomSync);
+    window.addEventListener('storage', handleStorageSync);
+
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleCustomSync);
+      window.removeEventListener('storage', handleStorageSync);
+      cleanupUrl();
+    };
+  }, [elevatorId, loadFromDB, cleanupUrl]);
+
   const uploadModel = useCallback(async (file) => {
+    if (!elevatorId) {
+      setError('Nenhum elevador especificado para vincular o modelo.');
+      return;
+    }
     setIsProcessing(true);
     setError(null);
     try {
       const format = detectFormat(file.name);
       if (!format) {
-        throw new Error('Formato não suportado. Utilize arquivos .glb, .fbx ou .obj.');
+        throw new Error('Formato não suportado. Utilize arquivos .glb, .gltf, .fbx ou .obj.');
       }
-      // Revoke previous URL
-      if (modelUrl) URL.revokeObjectURL(modelUrl);
+      if (file.size > MAX_MODEL_SIZE_MB * 1024 * 1024) {
+        throw new Error(`O arquivo excede o limite de ${MAX_MODEL_SIZE_MB}MB.`);
+      }
 
+      cleanupUrl();
       const blob = new Blob([await file.arrayBuffer()], { type: file.type || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
+      modelUrlRef.current = url;
 
-      // Persist
-      await saveModelToDB(blob, file.name);
+      const recordData = {
+        blob,
+        fileName: file.name,
+        format,
+        parts: [],
+      };
+      await saveModelToDB(elevatorId, recordData);
+      currentRecordRef.current = recordData;
 
       setModelUrl(url);
       setModelFormat(format);
       setModelFileName(file.name);
-      setParts([]); // will be populated after loading
+      setParts([]);
+      notifyChange(elevatorId);
     } catch (err) {
       setError(err.message || 'Erro ao processar arquivo.');
     } finally {
       setIsProcessing(false);
     }
-  }, [modelUrl]);
+  }, [elevatorId, cleanupUrl, notifyChange]);
 
   const removeModel = useCallback(async () => {
-    if (modelUrl && modelUrl.startsWith('blob:')) URL.revokeObjectURL(modelUrl);
+    if (!elevatorId) return;
+    cleanupUrl();
     setModelUrl(null);
     setModelFormat(null);
     setModelFileName(null);
     setParts([]);
     setError(null);
-    await clearModelFromDB().catch(() => {});
-  }, [modelUrl]);
+    currentRecordRef.current = null;
+    await clearModelFromDB(elevatorId).catch(() => {});
+    notifyChange(elevatorId);
+  }, [elevatorId, cleanupUrl, notifyChange]);
 
-  const loadDefaultModel = useCallback(() => {
-    if (modelUrl && modelUrl.startsWith('blob:')) URL.revokeObjectURL(modelUrl);
+  const loadDefaultModel = useCallback(async () => {
+    if (!elevatorId) return;
+    cleanupUrl();
     setModelUrl(defaultModelUrl);
     setModelFormat('glb');
     setModelFileName('HOPElevador.glb (Padrão)');
     setParts([]);
     setError(null);
-  }, [modelUrl]);
+  }, [elevatorId, cleanupUrl]);
 
-  /**
-   * Called by the 3D viewer after the model is fully loaded to register
-   * the extracted parts list.
-   */
   const registerParts = useCallback((scene) => {
     const extracted = extractParts(scene);
     setParts(extracted);
-  }, []);
+    if (elevatorId && currentRecordRef.current?.blob) {
+      saveModelToDB(elevatorId, {
+        ...currentRecordRef.current,
+        parts: extracted,
+      }).catch(() => {});
+    }
+  }, [elevatorId]);
+
+  const displayNameMap = useMemo(() => buildDisplayNameMap(parts.map((p) => p.originalName)), [parts]);
+  const dynamicRegions = useMemo(() => buildDynamicRegions(parts), [parts]);
 
   const value = useMemo(() => ({
+    elevatorId,
     modelUrl,
     modelFormat,
     modelFileName,
@@ -309,11 +377,26 @@ export function ModelUploadProvider({ children }) {
     loadDefaultModel,
     removeModel,
     registerParts,
-  }), [modelUrl, modelFormat, modelFileName, parts, displayNameMap, dynamicRegions, isProcessing, error, restoredFromDB, uploadModel, loadDefaultModel, removeModel, registerParts]);
+  }), [
+    elevatorId,
+    modelUrl,
+    modelFormat,
+    modelFileName,
+    parts,
+    displayNameMap,
+    dynamicRegions,
+    isProcessing,
+    error,
+    restoredFromDB,
+    uploadModel,
+    loadDefaultModel,
+    removeModel,
+    registerParts,
+  ]);
 
   return (
-    <ModelUploadContext.Provider value={value}>
+    <ElevatorModelContext.Provider value={value}>
       {children}
-    </ModelUploadContext.Provider>
+    </ElevatorModelContext.Provider>
   );
 }

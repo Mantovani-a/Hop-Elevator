@@ -1,15 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
-import { useModelUpload } from '../../context/ModelUploadContext';
+import { useElevatorModel, MAX_MODEL_SIZE_MB } from '../../context/ElevatorModelContext';
 
 const ACCEPTED_EXTENSIONS = ['.glb', '.gltf', '.fbx', '.obj'];
-const MAX_SIZE_MB = 150;
+const MAX_SIZE_MB = MAX_MODEL_SIZE_MB || 150;
 
 /**
  * Premium drag-and-drop upload panel for 3D elevator models.
- * Shown when no model has been loaded yet.
+ * Scoped to the current elevator.
  */
 export default function ModelUploadPanel() {
-  const { uploadModel, isProcessing, error, modelFileName, removeModel, loadDefaultModel } = useModelUpload();
+  const {
+    elevatorId,
+    uploadModel,
+    isProcessing,
+    error,
+    modelFileName,
+    removeModel,
+    loadDefaultModel,
+    restoredFromDB,
+  } = useElevatorModel();
+
   const inputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -17,7 +27,7 @@ export default function ModelUploadPanel() {
     if (!file) return;
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     if (!ACCEPTED_EXTENSIONS.includes(ext)) {
-      alert('Formato não suportado. Utilize arquivos .glb, .fbx ou .obj.');
+      alert('Formato não suportado. Utilize arquivos .glb, .gltf, .fbx ou .obj.');
       return;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -31,15 +41,16 @@ export default function ModelUploadPanel() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    if (isProcessing) return;
     const file = e.dataTransfer?.files?.[0];
     handleFile(file);
-  }, [handleFile]);
+  }, [handleFile, isProcessing]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
-  }, []);
+    if (!isProcessing) setIsDragging(true);
+  }, [isProcessing]);
 
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
@@ -50,11 +61,25 @@ export default function ModelUploadPanel() {
   const handleInputChange = useCallback((e) => {
     const file = e.target.files?.[0];
     handleFile(file);
-    // reset input so same file can be re-selected
     if (inputRef.current) inputRef.current.value = '';
   }, [handleFile]);
 
-  // If a model is already loaded, show a compact status bar instead
+  // Loading state while checking IndexedDB
+  if (!restoredFromDB) {
+    return (
+      <div className="model-upload-status" role="status" aria-live="polite">
+        <div className="model-upload-status__info">
+          <div className="elevator-3d-loader__spinner" style={{ width: '18px', height: '18px' }} />
+          <div>
+            <span className="model-upload-status__filename">Buscando modelo vinculado ao elevador...</span>
+            {elevatorId && <span className="model-upload-status__badge">{elevatorId}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If a model is loaded for this elevator, show status bar with elevatorId and actionable buttons
   if (modelFileName) {
     return (
       <div className="model-upload-status">
@@ -65,24 +90,35 @@ export default function ModelUploadPanel() {
           </svg>
           <div>
             <span className="model-upload-status__filename">{modelFileName}</span>
-            <span className="model-upload-status__badge">Modelo ativo</span>
+            <span className="model-upload-status__badge">{elevatorId ? `Elevador ${elevatorId}` : 'Modelo ativo'}</span>
           </div>
         </div>
         <div className="model-upload-status__actions">
-          <label className="model-upload-status__btn model-upload-status__btn--replace" tabIndex={0}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".glb,.gltf,.fbx,.obj"
+            onChange={handleInputChange}
+            style={{ display: 'none' }}
+            disabled={isProcessing}
+          />
+          <button
+            className="model-upload-status__btn model-upload-status__btn--replace"
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={isProcessing}
+          >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M7 1V13M1 7h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             </svg>
             Substituir
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".glb,.gltf,.fbx,.obj"
-              onChange={handleInputChange}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <button className="model-upload-status__btn model-upload-status__btn--remove" type="button" onClick={removeModel}>
+          </button>
+          <button
+            className="model-upload-status__btn model-upload-status__btn--remove"
+            type="button"
+            onClick={removeModel}
+            disabled={isProcessing}
+          >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M3 3l8 8M11 3L3 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             </svg>
@@ -117,29 +153,38 @@ export default function ModelUploadPanel() {
           </svg>
         </div>
 
-        <h3 className="model-upload-panel__title">Importar modelo 3D</h3>
+        <h3 className="model-upload-panel__title">
+          {elevatorId ? `Vincular modelo 3D ao elevador ${elevatorId}` : 'Importar modelo 3D'}
+        </h3>
         <p className="model-upload-panel__description">
-          Arraste um arquivo <strong>.glb</strong>, <strong>.fbx</strong> ou <strong>.obj</strong> para esta área ou clique para selecionar do seu computador.
+          Nenhum modelo vinculado a este equipamento. Arraste um arquivo <strong>.glb</strong>, <strong>.gltf</strong>, <strong>.fbx</strong> ou <strong>.obj</strong> para esta área ou clique para selecionar do computador.
         </p>
 
         <div className="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-2">
-          <label className="model-upload-panel__btn" tabIndex={0}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".glb,.gltf,.fbx,.obj"
+            onChange={handleInputChange}
+            style={{ display: 'none' }}
+            disabled={isProcessing}
+          />
+          <button
+            type="button"
+            className="model-upload-panel__btn"
+            onClick={() => inputRef.current?.click()}
+            disabled={isProcessing}
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             Selecionar arquivo
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".glb,.gltf,.fbx,.obj"
-              onChange={handleInputChange}
-              style={{ display: 'none' }}
-            />
-          </label>
+          </button>
           <button
             type="button"
             className="model-upload-panel__btn model-upload-panel__btn--secondary"
             onClick={loadDefaultModel}
+            disabled={isProcessing}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="none"/>
@@ -149,18 +194,18 @@ export default function ModelUploadPanel() {
         </div>
 
         <p className="model-upload-panel__hint">
-          Limite de {MAX_SIZE_MB}MB · O sistema identificará automaticamente as peças do modelo
+          Limite de {MAX_SIZE_MB}MB · Formatos GLB, GLTF, FBX, OBJ · O sistema identificará automaticamente as peças do modelo
         </p>
 
         {isProcessing && (
-          <div className="model-upload-panel__processing">
+          <div className="model-upload-panel__processing" role="status" aria-live="polite">
             <div className="elevator-3d-loader__spinner" />
             <span>Processando modelo…</span>
           </div>
         )}
 
         {error && (
-          <p className="model-upload-panel__error">{error}</p>
+          <p className="model-upload-panel__error" role="alert">{error}</p>
         )}
       </div>
     </div>

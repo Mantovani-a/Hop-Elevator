@@ -1,6 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import HomePage from './pages/HomePage';
-import { ModelUploadProvider } from './context/ModelUploadContext';
 import { getCurrentRoute } from './utils/navigation';
 
 const ClientPage = lazy(() => import('./pages/ClientPage'));
@@ -54,10 +53,8 @@ export default function App() {
         : (routeMap[route] || HomePage);
 
   return (
-    <ModelUploadProvider>
-      <Suspense fallback={<RouteLoader />}>
-        <Page route={route} />
-      </Suspense>
-    </ModelUploadProvider>
+    <Suspense fallback={<RouteLoader />}>
+      <Page route={route} />
+    </Suspense>
   );
 }
