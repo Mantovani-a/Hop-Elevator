@@ -6,8 +6,8 @@
   gap: 0.4rem;
   padding: 0.4rem 0.65rem;
   border-radius: 999px;
-  color: var(--color-neutral-strong);
-  background: var(--color-neutral-soft);
+  color: var(--hop-status-color, var(--color-neutral-strong));
+  background: var(--hop-status-background, var(--color-neutral-soft));
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.35;
@@ -43,6 +43,13 @@
 }
 
 :is(
+  .hop-status--baixa,
+  .hop-status--disponivel,
+  .hop-status--operando,
+  .hop-status--concluida,
+  .hop-status--resolvida,
+  .hop-status--resolvido,
+  .hop-status--no-local,
   .hop-badge--baixa,
   .hop-badge--disponivel,
   .hop-badge--operando,
@@ -51,11 +58,24 @@
   .hop-badge--resolvido,
   .hop-badge--no-local
 ) {
+  --hop-status-color: var(--color-severity-low-text);
+  --hop-status-background: var(--color-severity-low-soft);
+  --hop-status-accent: var(--color-severity-low);
   color: var(--color-severity-low-text);
   background: var(--color-severity-low-soft);
 }
 
 :is(
+  .hop-status--atencao,
+  .hop-status--agendada,
+  .hop-status--aguardando,
+  .hop-status--aguardando-atribuicao,
+  .hop-status--tecnico-atribuido,
+  .hop-status--tecnico-designado,
+  .hop-status--aceito,
+  .hop-status--em-deslocamento,
+  .hop-status--tecnico-a-caminho,
+  .hop-status--chamado-aberto,
   .hop-badge--atencao,
   .hop-badge--agendada,
   .hop-badge--aguardando,
@@ -67,27 +87,45 @@
   .hop-badge--tecnico-a-caminho,
   .hop-badge--chamado-aberto
 ) {
+  --hop-status-color: var(--color-severity-attention-text);
+  --hop-status-background: var(--color-severity-attention-soft);
+  --hop-status-accent: var(--color-severity-attention);
   color: var(--color-severity-attention-text);
   background: var(--color-severity-attention-soft);
 }
 
 :is(
+  .hop-status--alta,
+  .hop-status--em-atendimento,
+  .hop-status--atendimento-no-local,
+  .hop-status--tecnico-realizando-atendimento,
+  .hop-status--em-manutencao,
   .hop-badge--alta,
   .hop-badge--em-atendimento,
   .hop-badge--atendimento-no-local,
   .hop-badge--tecnico-realizando-atendimento,
   .hop-badge--em-manutencao
 ) {
+  --hop-status-color: var(--color-severity-high-text);
+  --hop-status-background: var(--color-severity-high-soft);
+  --hop-status-accent: var(--color-severity-high);
   color: var(--color-severity-high-text);
   background: var(--color-severity-high-soft);
 }
 
 :is(
+  .hop-status--critica,
+  .hop-status--parado,
+  .hop-status--indisponivel,
+  .hop-status--sem-tecnico,
   .hop-badge--critica,
   .hop-badge--parado,
   .hop-badge--indisponivel,
   .hop-badge--sem-tecnico
 ) {
+  --hop-status-color: var(--color-severity-critical-text);
+  --hop-status-background: var(--color-severity-critical-soft);
+  --hop-status-accent: var(--color-severity-critical);
   color: var(--color-severity-critical-text);
   background: var(--color-severity-critical-soft);
 }

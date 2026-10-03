@@ -29,8 +29,8 @@ export default function Modal({
       className={layerClassName}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? titleId : undefined}
-      aria-label={!title ? ariaLabel : undefined}
+      aria-labelledby={title || (!ariaLabel && titleId) ? titleId : undefined}
+      aria-label={!title && ariaLabel ? ariaLabel : undefined}
       onClick={handleBackdropClick}
     >
       <div

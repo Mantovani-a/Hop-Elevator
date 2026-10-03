@@ -5,6 +5,11 @@ export const normalizeToken = (value = '') =>
     .replace(/\s+/g, '-')
     .toLowerCase();
 
+export const statusToneClass = (value = '') => {
+  const token = normalizeToken(value);
+  return token ? `hop-status--${token}` : '';
+};
+
 export const formatDate = (date) => {
   if (!date) return '—';
   const parsed = new Date(`${date}T12:00:00`);

@@ -17,10 +17,10 @@
   --color-neutral-soft: #f1f5f9;
   --color-neutral-strong: #304d7b;
 
-  --color-severity-low: #00bb8b;
-  --color-severity-attention: #eab308;
-  --color-severity-high: #f59e0b;
-  --color-severity-critical: #f33450;
+  --color-severity-low: #3AB1A8;
+  --color-severity-attention: #C89B15;
+  --color-severity-high: #D88A12;
+  --color-severity-critical: #B93A3A;
   --color-severity-low-soft: #e6f9f7;
   --color-severity-attention-soft: #fef9c3;
   --color-severity-high-soft: #fff7e6;
@@ -34,6 +34,7 @@
   --primary-border-soft: rgba(255, 255, 255, 0.18);
   --primary-text-soft: rgba(255, 255, 255, 0.78);
   --shadow-subtle: 0 6px 20px rgba(24, 57, 102, 0.065);
+  --shadow-card-hover: 0 10px 24px rgba(24, 57, 102, 0.12);
   --shadow-focus: 0 0 0 0.25rem var(--focus-ring);
   --overlay-background: rgba(30, 41, 59, 0.58);
   --map-background: #dce5ed;
@@ -99,6 +100,7 @@
   --primary-border-soft: rgba(255, 255, 255, 0.18);
   --primary-text-soft: rgba(248, 250, 252, 0.78);
   --shadow-subtle: 0 2px 8px rgba(3, 7, 18, 0.14);
+  --shadow-card-hover: 0 10px 24px rgba(3, 7, 18, 0.35);
   --overlay-background: rgba(3, 7, 18, 0.72);
   --map-background: #172235;
   --map-district-border: #34455c;

@@ -2,6 +2,17 @@ import { useEffect, useRef } from 'react';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function getFocusableElements(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(FOCUSABLE)).filter((el) => {
+    return (
+      el.tabIndex >= 0 &&
+      !el.disabled &&
+      (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0)
+    );
+  });
+}
+
 export default function useDialogFocus(active, containerRef, onClose) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -10,8 +21,9 @@ export default function useDialogFocus(active, containerRef, onClose) {
     if (!active || !containerRef.current) return undefined;
     const previousFocus = document.activeElement;
     const container = containerRef.current;
-    const focusable = Array.from(container.querySelectorAll(FOCUSABLE));
-    (focusable[0] || container).focus();
+
+    const initial = getFocusableElements(container);
+    (initial[0] || container).focus();
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -19,7 +31,15 @@ export default function useDialogFocus(active, containerRef, onClose) {
         closeRef.current?.();
         return;
       }
-      if (event.key !== 'Tab' || focusable.length === 0) return;
+      if (event.key !== 'Tab') return;
+
+      const focusable = getFocusableElements(container);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        container.focus();
+        return;
+      }
+
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (event.shiftKey && document.activeElement === first) {
