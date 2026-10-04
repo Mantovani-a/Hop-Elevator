@@ -26,6 +26,10 @@ export default function useDialogFocus(active, containerRef, onClose) {
     (initial[0] || container).focus();
 
     const handleKeyDown = (event) => {
+      const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+      const topDialog = dialogs.at(-1);
+      if (topDialog && !topDialog.contains(container)) return;
+
       if (event.key === 'Escape') {
         event.preventDefault();
         closeRef.current?.();

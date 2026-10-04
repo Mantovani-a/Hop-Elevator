@@ -10,6 +10,16 @@ export const statusToneClass = (value = '') => {
   return token ? `hop-status--${token}` : '';
 };
 
+const statusLabels = {
+  operando: 'Operando',
+  'em atendimento': 'Em atendimento',
+  parado: 'Parado',
+  'atenção': 'Atenção',
+  'ocorrência ativa': 'Ocorrência ativa',
+};
+
+export const displayStatus = (value) => statusLabels[String(value || '').toLocaleLowerCase('pt-BR')] || value || '';
+
 export const formatDate = (date) => {
   if (!date) return '—';
   const parsed = new Date(`${date}T12:00:00`);

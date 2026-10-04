@@ -11,8 +11,8 @@ const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
  * - When a model is loaded: shows the 2D region panel (dynamically built from
  *   the model's parts) and the 3D wireframe viewer with tabs to switch
  */
-export default function ElevatorModelViewer({ diagnosis, severity }) {
-  const { modelUrl = null, dynamicRegions = [], displayNameMap = {} } = useElevatorModel() || {};
+export default function ElevatorModelViewer({ diagnosis, severity, canManage = false }) {
+  const { modelUrl = null, dynamicRegions = [], displayNameMap = {}, restoredFromDB = true } = useElevatorModel() || {};
   const suspectedRegions = diagnosis?.suspectedRegions || [];
   const initialRegion = suspectedRegions[0] || (dynamicRegions?.[0]?.id ?? '');
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);
@@ -30,7 +30,7 @@ export default function ElevatorModelViewer({ diagnosis, severity }) {
         <div>
           <p className="page-header__subtitle">Representação esquemática</p>
           <h2 className="fs-5" id="elevator-model-title">
-            {!modelUrl ? 'Importar modelo 3D' : viewMode === '2d' ? 'Modelo 2D do elevador' : 'Modelo 3D Wireframe'}
+            {!modelUrl ? 'Modelo 3D do elevador' : viewMode === '2d' ? 'Modelo 2D do elevador' : 'Modelo 3D do elevador'}
           </h2>
         </div>
         {modelUrl && (
@@ -38,8 +38,13 @@ export default function ElevatorModelViewer({ diagnosis, severity }) {
         )}
       </div>
 
-      {/* Upload panel — always visible for model management */}
-      <ModelUploadPanel />
+      {canManage && <ModelUploadPanel />}
+      {!canManage && !modelUrl && <div className="elevator-model-empty" role="status">
+        <span className="elevator-model-empty__icon" aria-hidden="true">◇</span>
+        <h3>{restoredFromDB ? 'Modelo 3D não disponível' : 'Buscando modelo do elevador…'}</h3>
+        <p>{restoredFromDB ? 'Este elevador ainda não possui um modelo 3D vinculado pela Central de Operações.' : 'Aguarde enquanto verificamos o vínculo deste equipamento.'}</p>
+        <small>O modelo auxilia na visualização dos componentes e não é obrigatório para o atendimento.</small>
+      </div>}
 
       {/* Only show tabs and content when a model is loaded */}
       {modelUrl && (

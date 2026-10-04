@@ -9,6 +9,7 @@ const navigationItems = [
   { href: '#/control/occurrences', route: '/control/occurrences', icon: 'alert', label: 'Ocorrências' },
   { href: '#/control/technicians', route: '/control/technicians', icon: 'users', label: 'Técnicos' },
   { href: '#/control/elevators', route: '/control/elevators', icon: 'elevator', label: 'Elevadores' },
+  { href: '#/control/preventives', route: '/control/preventives', icon: 'history', label: 'Preventivas' },
   { href: '#/control/analytics', route: '/control/analytics', icon: 'chart', label: 'Análises' },
 ];
 

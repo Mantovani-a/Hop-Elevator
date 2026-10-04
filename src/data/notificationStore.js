@@ -1,5 +1,6 @@
 import { getClientById, getElevatorById, getTechnicianById } from './mockData.js';
 import { OPERATION_STATUS } from './operationStatus.js';
+import { normalizeOccurrenceTeam } from '../utils/occurrenceTeam.js';
 
 const NOTIFICATION_STORAGE_KEY = 'hop-notifications-v1';
 const NOTIFICATION_UPDATED_EVENT = 'hop-notifications-updated';
@@ -99,9 +100,9 @@ const controlNotification = (occurrence, title, message, actionLabel = 'Ver ocor
   occurrenceId: occurrence.id,
 });
 
-const operatorNotification = (occurrence, title, message, actionLabel = 'Abrir ocorrência') => ({
+const operatorNotification = (occurrence, title, message, actionLabel = 'Abrir ocorrência', recipientId = occurrence.technicianId || occurrence.assignedTechnicianId) => ({
   module: 'operator',
-  recipientId: occurrence.technicianId || occurrence.assignedTechnicianId,
+  recipientId,
   title,
   message,
   actionLabel,
@@ -127,25 +128,29 @@ export const publishOperationNotifications = (previousState, nextState) => {
     const previous = previousById.get(occurrence.id);
     const context = occurrenceContext(occurrence);
 
-    if (!previous) {
-      const isCritical = occurrence.priority?.classification === 'crítica';
-      notifications.push(controlNotification(
-        occurrence,
-        isCritical ? 'Nova urgência crítica' : 'Nova ocorrência registrada',
+      if (!previous) {
+        const isCritical = occurrence.priority?.classification === 'crítica';
+        const isPreventive = occurrence.serviceType === 'preventive';
+        notifications.push(controlNotification(
+          occurrence,
+          isPreventive ? 'Preventiva enviada ao campo' : isCritical ? 'Nova urgência crítica' : 'Nova ocorrência registrada',
         `${context.protocol} · ${context.clientName}. ${occurrence.description}`,
       ));
       if (occurrence.technicianId || occurrence.assignedTechnicianId) {
-        notifications.push(operatorNotification(
-          occurrence,
-          isCritical ? 'Você tem uma nova ocorrência crítica' : 'Nova ocorrência atribuída',
+        normalizeOccurrenceTeam(occurrence).members.forEach((member) => notifications.push(operatorNotification(
+            occurrence,
+            isPreventive ? 'Nova preventiva atribuída' : isCritical ? 'Você tem uma nova ocorrência crítica' : 'Nova ocorrência atribuída',
           `${context.clientName} · ${context.elevatorName}`,
-        ));
+          'Abrir ocorrência', member.technicianId,
+        )));
       }
       return;
     }
 
     const previousTechnicianId = previous.technicianId || previous.assignedTechnicianId || null;
     const nextTechnicianId = occurrence.technicianId || occurrence.assignedTechnicianId || null;
+    const previousMembers = new Set(normalizeOccurrenceTeam(previous).members.map((member) => member.technicianId));
+    normalizeOccurrenceTeam(occurrence).members.filter((member) => member.technicianId !== nextTechnicianId && !previousMembers.has(member.technicianId)).forEach((member) => notifications.push(operatorNotification(occurrence, 'Você foi adicionado à equipe', `${context.protocol} · ${context.clientName} · ${context.elevatorName}`, 'Abrir ocorrência', member.technicianId)));
     if (nextTechnicianId && nextTechnicianId !== previousTechnicianId && occurrence.workflowStatus !== OPERATION_STATUS.PART_AVAILABLE) {
       notifications.push(operatorNotification(
         occurrence,

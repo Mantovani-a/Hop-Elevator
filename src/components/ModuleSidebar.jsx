@@ -10,6 +10,7 @@ const navigationIcons = {
   users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8 .13a4 4 0 0 1 0 7.75',
   elevator: 'M4 3h16v18H4V3Zm8 0v18M7 10l2-2 2 2m2 4 2 2 2-2',
   chart: 'M4 3v18h17M8 16v-5m5 5V7m5 9v-7',
+  parts: 'm12 2 9 5-9 5-9-5 9-5Zm-9 5v10l9 5 9-5V7M12 12v10',
   plus: 'M12 5v14M5 12h14',
   calls: 'M6 3h12v18H6V3Zm3 5h6m-6 4h6m-6 4h4',
   user: 'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4 21v-2a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2',

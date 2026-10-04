@@ -4,6 +4,9 @@ import { calculatePriority } from '../utils/priorityScore.js';
 import { resolveAutomaticDispatch } from '../utils/dispatchRecommendation.js';
 import { publishOperationNotifications, resetNotifications } from './notificationStore.js';
 import { OPERATION_STATUS } from './operationStatus.js';
+import { seedComponentFor } from './technicalIntelligence.js';
+import { DEFAULT_SHIFT_PLAN, deriveShift, validShiftPlan, localDay } from '../utils/shiftSchedule.js';
+import { normalizeOccurrenceTeam } from '../utils/occurrenceTeam.js';
 
 export { OPERATION_STATUS };
 
@@ -19,6 +22,18 @@ const computeDuration = (startIso, endIso) => {
 
 const OPERATION_STORAGE_KEY = 'hop-shared-operation-v5';
 const OPERATION_UPDATED_EVENT = 'hop-operation-updated';
+
+const dateFromNow = (days, now) => {
+  const date = new Date(now);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const createSeedPreventives = (now) => [
+  { id: 'PREV-001', elevatorId: 'ELV-001', date: dateFromNow(2, now), window: '09:00–11:00', note: 'Inspeção periódica de portas e nivelamento', occurrenceId: null },
+  { id: 'PREV-002', elevatorId: 'ELV-003', date: dateFromNow(5, now), window: '13:00–15:00', note: 'Verificação do elevador de serviço', occurrenceId: null },
+  { id: 'PREV-003', elevatorId: 'ELV-006', date: dateFromNow(8, now), window: '09:00–11:00', note: 'Inspeção periódica', occurrenceId: null },
+];
 
 let cachedRawState = null;
 let cachedOperationState = null;
@@ -44,6 +59,7 @@ const createSeedOccurrence = (occurrence, index, now) => {
   const workflowStatus = initialWorkflowStatus(seededOccurrence);
   return {
     ...seededOccurrence,
+    componentId: seedComponentFor(seededOccurrence.id),
     protocol: metadata.serviceNumber || `HOP-${1100 + index}`,
     metadata,
     priority,
@@ -57,10 +73,13 @@ const createSeedOccurrence = (occurrence, index, now) => {
 export const createInitialOperationState = (now = new Date()) => {
   const seedOccurrences = createMockOccurrences(now);
   return {
-    version: 5,
+    version: 6,
     updatedAt: now.toISOString(),
-    operatorShiftActive: true,
+    operatorShiftActive: false,
+    operatorShiftPlan: { ...DEFAULT_SHIFT_PLAN },
+    shiftEvents: [],
     occurrences: seedOccurrences.map((occurrence, index) => createSeedOccurrence(occurrence, index, now)),
+    preventives: createSeedPreventives(now),
   };
 };
 
@@ -88,9 +107,11 @@ export const validateAndSanitizeOccurrence = (occ, index = 0, now = new Date()) 
     }
 
     const workflowStatus = occ.workflowStatus || initialWorkflowStatus(occ);
+    const team = normalizeOccurrenceTeam({ ...occ, priority });
 
     return {
       ...occ,
+      componentId: occ.componentId || seedComponentFor(occ.id),
       id: occ.id || `OCC-AUTO-${index}`,
       clientId,
       elevatorId,
@@ -100,7 +121,9 @@ export const validateAndSanitizeOccurrence = (occ, index = 0, now = new Date()) 
       trappedPeople: Number(occ.trappedPeople) || 0,
       severity: occ.severity || priority?.classification || 'baixa',
       status: occ.status || 'aberta',
-      technicianId: occ.technicianId || null,
+      technicianId: team.responsibleId,
+      assignedTechnicianId: team.responsibleId,
+      team,
       origin: occ.origin || 'mock',
       metadata,
       priority: priority || { score: 15, classification: 'baixa', slaMinutes: 180 },
@@ -120,12 +143,18 @@ const normalizeState = (state, now = new Date()) => {
     const occurrences = rawOccurrences
       .map((occ, idx) => validateAndSanitizeOccurrence(occ, idx, now))
       .filter(Boolean);
+    const shiftEvents = Array.isArray(state?.shiftEvents) ? state.shiftEvents.filter((event) => event?.type && event?.at && !Number.isNaN(new Date(event.at).getTime())) : [];
+    const todayEvents = shiftEvents.filter((event) => event.technicianId === 'TEC-010' && localDay(event.at) === localDay(now));
+    const shiftStatus = deriveShift(todayEvents, now).status;
 
     return {
-      version: 5,
+      version: 6,
       updatedAt: state?.updatedAt || now.toISOString(),
-      operatorShiftActive: state?.operatorShiftActive !== false,
+      operatorShiftActive: shiftStatus === 'active' || shiftStatus === 'break',
+      operatorShiftPlan: validShiftPlan(state?.operatorShiftPlan) ? state.operatorShiftPlan : { ...DEFAULT_SHIFT_PLAN },
+      shiftEvents,
       occurrences: occurrences.length ? occurrences : createInitialOperationState(now).occurrences,
+      preventives: Array.isArray(state?.preventives) ? state.preventives.filter((plan) => plan?.id && plan?.elevatorId && /^\d{4}-\d{2}-\d{2}$/.test(plan.date || '')) : createSeedPreventives(now),
     };
   } catch (err) {
     console.warn('HOP: Falha ao normalizar estado. Retornando estado inicial limpo.', err);
@@ -161,19 +190,25 @@ const readOperationState = () => {
 
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.occurrences) && parsed.occurrences.length > 0) {
         const storedTime = new Date(parsed.updatedAt || 0).getTime();
-        const isStale = Number.isNaN(storedTime) || (Date.now() - storedTime > 12 * 60 * 60 * 1000);
+        const isStale = Number.isNaN(storedTime);
 
         if (!isStale) {
           const sanitizedState = normalizeState(parsed);
           if (sanitizedState && Array.isArray(sanitizedState.occurrences) && sanitizedState.occurrences.length > 0) {
             cachedOperationState = sanitizedState;
             cachedRawState = JSON.stringify(sanitizedState);
+            if (stored !== cachedRawState) {
+              try { window.localStorage.setItem(OPERATION_STORAGE_KEY, cachedRawState); } catch { /* mantém em memória */ }
+            }
             return cachedOperationState;
           }
         }
 
-        // Estado expirado (>12h) ou inconsistente: recria com estado inicial limpo preservando chamados do cliente se válidos
+        // Estado inconsistente: recria com estado inicial preservando chamados do cliente válidos.
         const freshState = createInitialOperationState(new Date());
+        if (Array.isArray(parsed.preventives)) freshState.preventives = parsed.preventives;
+        if (Array.isArray(parsed.shiftEvents)) freshState.shiftEvents = parsed.shiftEvents;
+        if (validShiftPlan(parsed.operatorShiftPlan)) freshState.operatorShiftPlan = parsed.operatorShiftPlan;
         try {
           const clientCreated = (parsed.occurrences || [])
             .filter((item) => item?.origin !== 'mock')
@@ -223,6 +258,9 @@ const writeOperationState = (state, { force = false } = {}) => {
     const currentState = readOperationState();
     if (!force
       && currentState.operatorShiftActive === nextState.operatorShiftActive
+      && JSON.stringify(currentState.operatorShiftPlan) === JSON.stringify(nextState.operatorShiftPlan)
+      && JSON.stringify(currentState.preventives) === JSON.stringify(nextState.preventives)
+      && JSON.stringify(currentState.shiftEvents) === JSON.stringify(nextState.shiftEvents)
       && JSON.stringify(currentState.occurrences) === JSON.stringify(nextState.occurrences)) return currentState;
     const cachedNextState = cacheState(nextState);
     try {
@@ -305,6 +343,39 @@ export const updateOperationOccurrence = (occurrenceId, changes) => {
   }
 };
 
+
+export const addPreventive = ({ elevatorId, date, window, note }) => {
+  const state = readOperationState();
+  if (!elevatorById(elevatorId) || !/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return state;
+  const plan = { id: `PREV-${Date.now()}`, elevatorId, date, window: window || 'A combinar', note: (note || 'Inspeção periódica').trim(), occurrenceId: null };
+  return writeOperationState({ ...state, preventives: [...state.preventives, plan] });
+};
+
+export const reschedulePreventive = (planId, date) => {
+  const state = readOperationState();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return state;
+  return writeOperationState({ ...state, preventives: state.preventives.map((plan) => plan.id === planId && !plan.occurrenceId ? { ...plan, date } : plan) });
+};
+
+export const startPreventive = (planId) => {
+  const state = readOperationState();
+  const plan = state.preventives.find((item) => item.id === planId);
+  if (!plan || plan.occurrenceId) return state;
+  const elevator = elevatorById(plan.elevatorId);
+  if (!elevator) return state;
+  const occurrenceId = `OCC-PREV-${Date.now()}`;
+  const time = new Date().toISOString();
+  const occurrence = validateAndSanitizeOccurrence({
+    id: occurrenceId, elevatorId: elevator.id, clientId: elevator.clientId,
+    protocol: `HOP-P-${String(Date.now()).slice(-7)}`,
+    address: elevator.address, time, description: plan.note, serviceType: 'preventive',
+    preventiveId: plan.id, origin: 'preventive', status: 'agendada',
+    technicianId: 'TEC-010', workflowStatus: OPERATION_STATUS.TECHNICIAN_ASSIGNED,
+    trappedPeople: 0, severity: 'baixa',
+  });
+  return writeOperationState({ ...state, occurrences: [occurrence, ...state.occurrences], preventives: state.preventives.map((item) => item.id === planId ? { ...item, occurrenceId } : item) });
+};
+
 /**
  * Sets the operator's duty shift state (active or inactive).
  *
@@ -313,7 +384,24 @@ export const updateOperationOccurrence = (occurrenceId, changes) => {
  */
 export const updateOperatorShift = (operatorShiftActive) => {
   const state = readOperationState();
-  return writeOperationState({ ...state, operatorShiftActive: Boolean(operatorShiftActive) });
+  const active = Boolean(operatorShiftActive);
+  return registerOperatorShiftEvent(active ? 'start' : 'end');
+};
+
+export const updateOperatorShiftPlan = (plan) => {
+  const state = readOperationState();
+  return validShiftPlan(plan) ? writeOperationState({ ...state, operatorShiftPlan: { ...plan } }) : state;
+};
+
+export const registerOperatorShiftEvent = (type) => {
+  const state = readOperationState();
+  const today = localDay(new Date());
+  const todaysEvents = state.shiftEvents.filter((event) => event.technicianId === 'TEC-010' && localDay(event.at) === today);
+  const shift = deriveShift(todaysEvents);
+  if (type !== shift.nextAction) return state;
+  const at = new Date().toISOString();
+  const openOccurrences = type === 'end' ? state.occurrences.filter((item) => item.technicianId === 'TEC-010' && item.workflowStatus !== OPERATION_STATUS.RESOLVED).length : undefined;
+  return writeOperationState({ ...state, operatorShiftActive: type === 'end' ? false : true, shiftEvents: [{ type, at, technicianId: 'TEC-010', ...(openOccurrences === undefined ? {} : { openOccurrences }), ...(type === 'start' ? { plan: state.operatorShiftPlan } : {}) }, ...state.shiftEvents] });
 };
 
 /**

@@ -599,3 +599,7 @@
     }
   }
 }
+.hop-client-preventive { display:flex; flex-direction:column; gap:.2rem; margin-top:.85rem; padding:.75rem; border:1px solid var(--color-border); background:var(--color-primary-soft); border-radius:var(--radius-md); }
+.hop-client-preventive span { color:var(--color-primary-text); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+.hop-client-preventive strong { color:var(--color-text); font-size:.86rem; }
+.hop-client-preventive small { color:var(--color-text-muted); }

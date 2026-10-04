@@ -1,6 +1,7 @@
 import { OPERATION_STATUS } from '../data/operationStatus.js';
 import { technicians as allTechnicians } from '../data/mockData.js';
 import { calculateHaversineDistanceKm, getEstablishmentGeoPoint, getTechnicianGeoPoint } from '../data/geoCoordinates.js';
+import { isTeamMember, normalizeOccurrenceTeam, teamMember, TEAM_STATUS } from './occurrenceTeam.js';
 
 const normalize = (value = '') => value
   .normalize('NFD')
@@ -71,8 +72,7 @@ export const rankTechniciansForDispatch = (occurrence, technicians, activeOccurr
   return technicians
     .map((technician) => {
       const assignedOccurrences = activeOccurrences.filter((item) => {
-        const technicianId = item.technicianId || item.assignedTechnicianId;
-        return technicianId === technician.id && activeOccurrenceFor(item);
+        return item.id !== occurrence?.id && isTeamMember(item, technician.id) && teamMember(item, technician.id)?.status !== TEAM_STATUS.FINISHED && activeOccurrenceFor(item);
       });
       const executing = assignedOccurrences.some((item) => executionStatuses.has(item.workflowStatus || item.operationalStatus));
       const load = assignedOccurrences.length;
@@ -133,6 +133,22 @@ export const getTechnicianRecommendation = (occurrence, technicians, activeOccur
 export const recommendTechnician = (occurrence, technicians, activeOccurrences = []) =>
   getTechnicianRecommendation(occurrence, technicians, activeOccurrences)?.technician || null;
 
+export const suggestOccurrenceTeam = (occurrence, technicians, activeOccurrences = []) => {
+  const team = normalizeOccurrenceTeam(occurrence);
+  const assigned = new Set(team.members.map((member) => member.technicianId));
+  const count = Math.max(0, team.requiredCount - assigned.size);
+  const candidates = rankTechniciansForDispatch(occurrence, technicians, activeOccurrences).filter((candidate) => !assigned.has(candidate.technician.id));
+  const specialties = new Set(technicians.filter((technician) => assigned.has(technician.id)).map((technician) => normalize(technician.specialty)));
+  const selected = [];
+  while (selected.length < count && candidates.length) {
+    candidates.sort((a, b) => (b.score + (specialties.has(normalize(b.technician.specialty)) ? 0 : 12)) - (a.score + (specialties.has(normalize(a.technician.specialty)) ? 0 : 12)) || a.technician.id.localeCompare(b.technician.id));
+    const candidate = candidates.shift();
+    selected.push(candidate);
+    specialties.add(normalize(candidate.technician.specialty));
+  }
+  return selected;
+};
+
 /**
  * Attempts automated dispatch for an occurrence in WAITING_ASSIGNMENT state.
  * Assigns best matching technician and calculates initial ETA and metadata.
@@ -155,7 +171,7 @@ export const resolveAutomaticDispatch = (occurrence, { operatorShiftActive = tru
 
   // Prioriza o operador de campo ativo (João Carlos - TEC-010) para chamados originados pelo cliente
   const joaoCarlos = allTechnicians.find((tech) => tech.id === 'TEC-010');
-  const operatorOccurrences = occurrences.filter((item) => (item.technicianId === 'TEC-010' || item.assignedTechnicianId === 'TEC-010') && activeOccurrenceFor(item));
+  const operatorOccurrences = occurrences.filter((item) => isTeamMember(item, 'TEC-010') && teamMember(item, 'TEC-010')?.status !== TEAM_STATUS.FINISHED && activeOccurrenceFor(item));
   const operatorExecuting = operatorOccurrences.some((item) => executionStatuses.has(item.workflowStatus || item.operationalStatus));
   const operatorAvailable = operatorShiftActive !== false && !operatorExecuting && operatorOccurrences.length < 2;
 

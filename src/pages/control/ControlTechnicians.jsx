@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import ProfileAvatar from '../../components/ProfileAvatar';
 import StatusBadge from '../../components/StatusBadge';
-import { statusToneClass } from '../../utils/presentation';
+import { displayStatus, statusToneClass } from '../../utils/presentation';
+import HopFilterBar from '../../components/HopFilterBar';
 
 const filters = [
   ['all', 'Todos'],
@@ -33,65 +34,39 @@ export default function ControlTechnicians({ technicians, onSelectTechnician }) 
         <span className="hop-badge px-3 py-2">{available} disponíveis</span>
       </header>
 
-      <section className="d-flex flex-wrap gap-2 mt-4" aria-label="Filtrar técnicos por status">
-        {filters.map(([id, label]) => (
-          <button
-            className={`btn btn-sm rounded-pill ${filter === id ? 'btn-primary' : 'btn-outline-secondary'}`}
-            type="button"
-            aria-pressed={filter === id}
-            onClick={() => setFilter(id)}
-            key={id}
-          >
-            {label}
-          </button>
-        ))}
-      </section>
+      <HopFilterBar label="Filtrar técnicos por status" quick={filters} active={filter} onQuickChange={setFilter} count={filtered.length} total={technicians.length} hasFilters={filter !== 'all'} onClear={() => setFilter('all')} />
 
-      <section className="control-technician-grid row g-4 mt-2">
+      <section className="control-technician-grid" aria-label="Equipe de campo">
         {filtered.map((technician) => {
           const toneClass = statusToneClass(technician.status);
-
           return (
-            <div className="col-12 col-sm-6 col-lg-4 col-xl-3" key={technician.id}>
-              <button
-                className={`control-technician-card app-card ${toneClass}`}
-                type="button"
-                onClick={() => onSelectTechnician(technician.id)}
-                aria-label={`Ver detalhes do técnico ${technician.name}, status ${technician.status}`}
-              >
-                <header className="control-technician-card__header">
-                  <div className="control-technician-card__identity">
-                    <ProfileAvatar name={technician.name} src={technician.avatar} size="md" decorative />
-                    <div>
-                      <h2 className="control-technician-card__name">{technician.name}</h2>
-                      <p className="control-technician-card__specialty">{technician.specialty}</p>
-                    </div>
-                  </div>
-                  <div className="control-technician-card__badge-wrap">
-                    <StatusBadge value={technician.status} />
-                  </div>
-                </header>
+            <button
+              key={technician.id}
+              className={`control-elevator-card control-technician-card ${toneClass}`}
+              type="button"
+              onClick={() => onSelectTechnician(technician.id)}
+              aria-label={`Ver perfil e rotas de ${technician.name}, status ${displayStatus(technician.status)}`}
+            >
+              <div className="control-elevator-card__header">
+                <span className="control-elevator-card__header-left">
+                  <ProfileAvatar name={technician.name} src={technician.avatar} size="md" className="control-technician-card__avatar" decorative />
+                  <StatusBadge value={technician.status} />
+                </span>
+                <span className="control-elevator-card__menu" aria-hidden="true">
+                  <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor"><circle cx="8" cy="4" r="1.5" /><circle cx="8" cy="10" r="1.5" /><circle cx="8" cy="16" r="1.5" /></svg>
+                </span>
+              </div>
 
-                <dl className="control-technician-card__metrics">
-                  <div>
-                    <dt>Região</dt>
-                    <dd>{technician.region}</dd>
-                  </div>
-                  <div>
-                    <dt>Atendimento Atual</dt>
-                    <dd>{technician.currentOccurrence?.protocol || 'Sem chamado'}</dd>
-                  </div>
-                  <div>
-                    <dt>Distância</dt>
-                    <dd>{technician.distanceKm.toFixed(1).replace('.', ',')} km</dd>
-                  </div>
-                </dl>
+              <div className="control-elevator-card__main">
+                <h2 className="control-elevator-card__client control-technician-card__name" title={technician.name}>{technician.name}</h2>
+                <p className="control-elevator-card__title control-technician-card__specialty" title={technician.specialty}>{technician.specialty}</p>
+              </div>
 
-                <div className="control-technician-card__footer">
-                  <span>Ver perfil e rotas →</span>
-                </div>
-              </button>
-            </div>
+              <div className="control-elevator-card__footer">
+                <span className="control-elevator-card__code">{technician.id}</span>
+                <span className="control-technician-card__footer-action">Ver perfil →</span>
+              </div>
+            </button>
           );
         })}
       </section>

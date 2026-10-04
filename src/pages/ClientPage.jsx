@@ -17,6 +17,7 @@ import { OPERATION_STATUS, addOperationOccurrence } from '../data/operationStore
 import useOperationState from '../hooks/useOperationState';
 import { buildClientOccurrencePayload } from '../services/clientSupportService';
 import { navigateTo } from '../utils/navigation';
+import { preventiveStatus } from '../utils/preventivePlanning';
 
 export default function ClientPage({ route = '/client' }) {
   const operationState = useOperationState();
@@ -29,7 +30,7 @@ export default function ClientPage({ route = '/client' }) {
 
   const allCalls = useMemo(
     () => (operationState?.occurrences || [])
-      .filter((call) => call?.clientId === clientEstablishment?.id)
+      .filter((call) => call?.clientId === clientEstablishment?.id && call.serviceType !== 'preventive')
       .sort((first, second) => new Date(second.time || 0) - new Date(first.time || 0)),
     [operationState],
   );
@@ -41,12 +42,17 @@ export default function ClientPage({ route = '/client' }) {
 
   const displayedElevators = clientElevators.map((elevator) => {
     const trackedCall = activeCalls.find((call) => call.elevatorId === elevator.id);
+    const elevatorPlans = [...(operationState.preventives || [])].filter((plan) => plan.elevatorId === elevator.id).sort((a, b) => a.date.localeCompare(b.date));
+    const preventive = elevatorPlans.find((plan) => preventiveStatus(plan, operationState.occurrences) !== 'Concluída') || elevatorPlans.filter((plan) => preventiveStatus(plan, operationState.occurrences) === 'Concluída').at(-1);
+    const preventiveLabel = preventiveStatus(preventive || {}, operationState.occurrences) === 'Concluída' ? 'Última preventiva' : 'Próxima preventiva';
     const latestCall = allCalls.find((call) => call.elevatorId === elevator.id);
     if (!trackedCall) {
       return {
         ...elevator,
         clientStatus: latestCall?.finalCondition || 'Operação normal',
         activeCall: null,
+        preventive,
+        preventiveLabel,
       };
     }
     const clientStatus = trackedCall.workflowStatus === OPERATION_STATUS.RESOLVED
@@ -57,6 +63,8 @@ export default function ClientPage({ route = '/client' }) {
       clientStatus,
       system: trackedCall.system || elevator.system,
       activeCall: trackedCall.workflowStatus !== OPERATION_STATUS.RESOLVED ? trackedCall : null,
+      preventive,
+      preventiveLabel,
     };
   });
 

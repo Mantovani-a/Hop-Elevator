@@ -1,195 +1,48 @@
+import { useState } from 'react';
 import { OPERATION_STATUS } from '../../data/operationStore';
+import { componentLabel } from '../../data/technicalIntelligence';
+import { getSlaStatus } from '../../utils/slaCalculator';
 
-const BarList = ({ items, max }) => {
-  const safeMax = Math.max(1, Number(max) || 0);
-
-  return (
-    <div className="d-grid gap-3 mt-4">
-      {items.map((item) => {
-        const percentage = Math.max(8, Math.round(((item.value || 0) / safeMax) * 100));
-        return (
-          <div key={item.label}>
-            <div className="d-flex justify-content-between gap-3 mb-1" style={{ fontSize: '0.74rem' }}>
-              <span className="text-capitalize">{item.label}</span>
-              <strong style={{ color: 'var(--color-text)' }}>{item.value}</strong>
-            </div>
-            <span className="d-block overflow-hidden rounded-pill bg-light-subtle" style={{ height: '7px' }}>
-              <i
-                className="d-block h-100 rounded-pill bg-primary"
-                style={{ width: `${percentage}%` }}
-              />
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+function BarList({ items, empty = 'Sem registros no período.' }) {
+  const max = Math.max(1, ...items.map((item) => item.value));
+  return items.some((item) => item.value) ? <div className="analytics-bars">{items.map((item) => <div className="analytics-bar" key={item.label}><span>{item.label}</span><i><b style={{ width: `${(item.value / max) * 100}%` }} /></i><strong>{item.value}</strong></div>)}</div> : <p className="analytics-empty">{empty}</p>;
+}
+const formatMinutes = (value) => value == null ? 'Sem dados' : value >= 60 ? `${Math.floor(value / 60)}h ${String(value % 60).padStart(2, '0')}min` : `${value} min`;
+const validTime = (value) => { const time = new Date(value).getTime(); return Number.isFinite(time) ? time : null; };
+const tally = (records, keyOf) => Object.values(records.reduce((acc, item) => { const label = keyOf(item); if (label) { acc[label] ||= { label, value: 0 }; acc[label].value += 1; } return acc; }, {})).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
 
 export default function ControlAnalytics({ occurrences }) {
-  const severityLabels = ['crítica', 'alta', 'atenção', 'baixa'];
-  const severity = severityLabels.map((label) => ({
-    label,
-    value: occurrences.filter((item) => item.priority?.classification === label).length,
-  }));
-  const statuses = Object.values(OPERATION_STATUS).map((label) => ({
-    label,
-    value: occurrences.filter((item) => item.operationalStatus === label).length,
-  }));
-  const failures = [
-    { label: 'Portas e acessos', value: occurrences.filter((item) => /porta/i.test(item.description || '')).length },
-    { label: 'Parada da cabine', value: occurrences.filter((item) => /parad|preso/i.test(item.description || '')).length },
-    { label: 'Painéis e comandos', value: occurrences.filter((item) => /painel|botão/i.test(item.description || '')).length },
-    { label: 'Energia', value: occurrences.filter((item) => /energia/i.test(item.description || '')).length },
-  ];
-  const byClient = Object.values(
-    occurrences.reduce((acc, item) => {
-      const key = item.client?.name || 'Cliente Corporativo';
-      acc[key] = acc[key] || { label: key, value: 0 };
-      acc[key].value += 1;
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
-
-  const resolvedOccurrences = occurrences.filter((occ) => {
-    if (!occ.completedAt || !occ.time) return false;
-    const start = new Date(occ.time).getTime();
-    const end = new Date(occ.completedAt).getTime();
-    return !Number.isNaN(start) && !Number.isNaN(end) && end > start;
-  });
-
-  const totalMinutes = resolvedOccurrences.reduce((acc, occ) => {
-    const diff = (new Date(occ.completedAt).getTime() - new Date(occ.time).getTime()) / 60000;
-    return acc + diff;
-  }, 0);
-
-  const avgMinutes = resolvedOccurrences.length > 0 ? Math.round(totalMinutes / resolvedOccurrences.length) : 63;
-  const mttrHours = Math.floor(avgMinutes / 60);
-  const mttrMins = avgMinutes % 60;
-  const mttrFormatted = mttrHours > 0 ? `${mttrHours}h ${String(mttrMins).padStart(2, '0')}min` : `${mttrMins}min`;
-
+  const [period, setPeriod] = useState('30');
   const now = new Date();
-  const dayLetters = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
-    const year = targetDate.getFullYear();
-    const month = targetDate.getMonth();
-    const date = targetDate.getDate();
-    const dayOfWeek = targetDate.getDay();
-    const label = dayLetters[dayOfWeek];
-
-    const count = occurrences.filter((occ) => {
-      if (!occ.time) return false;
-      const occDate = new Date(occ.time);
-      if (Number.isNaN(occDate.getTime())) return false;
-      return occDate.getFullYear() === year && occDate.getMonth() === month && occDate.getDate() === date;
-    }).length;
-
-    return { label, count, dateStr: `${String(date).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}` };
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (Number(period) - 1)).getTime();
+  const inPeriod = (value) => { const time = validTime(value); return time !== null && time >= cutoff && time <= now.getTime(); };
+  const opened = occurrences.filter((item) => inPeriod(item.time));
+  const concluded = occurrences.filter((item) => item.operationalStatus === OPERATION_STATUS.RESOLVED && inPeriod(item.completedAt));
+  const active = opened.filter((item) => item.operationalStatus !== OPERATION_STATUS.RESOLVED);
+  const durations = concluded.map((item) => { const start = validTime(item.assignedAt || item.time); const end = validTime(item.completedAt); return start !== null && end !== null && end >= start ? Math.round((end - start) / 60000) : null; }).filter((value) => value !== null);
+  const mttr = durations.length ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : null;
+  const recurrent = opened.filter((item) => occurrences.some((other) => other.id !== item.id && other.elevatorId === item.elevatorId && validTime(other.time) !== null && validTime(other.time) < validTime(item.time) && validTime(item.time) - validTime(other.time) <= 7 * 86400000));
+  const pendingParts = active.filter((item) => item.partRequest && [OPERATION_STATUS.WAITING_PART, OPERATION_STATUS.PART_AVAILABLE, OPERATION_STATUS.TRAVELING_TO_PICKUP].includes(item.operationalStatus));
+  const slaRisk = active.filter((item) => { const sla = getSlaStatus(item, now); return sla?.isBreached || sla?.isNearBreach; });
+  const priorityLabels = ['crítica', 'alta', 'atenção', 'baixa'];
+  const severity = priorityLabels.map((label) => ({ label, value: opened.filter((item) => item.priority?.classification === label).length }));
+  const stages = tally(opened, (item) => item.operationalStatus);
+  const failures = tally(opened, (item) => item.componentId ? componentLabel(item.componentId) : 'Não classificado');
+  const places = tally(opened, (item) => item.client?.name || 'Local não informado').slice(0, 5);
+  const days = Array.from({ length: Number(period) }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (Number(period) - index - 1));
+    return { key: date.toDateString(), label: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), value: opened.filter((item) => new Date(item.time).toDateString() === date.toDateString()).length };
   });
-
-  const maxDaily = Math.max(1, ...last7Days.map((item) => item.count));
-
-  return (
-    <>
-      <header className="page-header">
-        <div>
-          <p className="page-header__subtitle">Leitura operacional</p>
-          <h1 className="page-header__title">Análises</h1>
-        </div>
-        <span className="hop-badge px-3 py-2">Últimos 7 dias</span>
-      </header>
-      <section className="row g-4 mt-2">
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Ocorrências por gravidade</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>{occurrences.length} registros</span>
-            </header>
-            <BarList items={severity} max={Math.max(1, ...severity.map((item) => item.value))} />
-          </article>
-        </div>
-
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Ocorrências por status</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>Fluxo atual</span>
-            </header>
-            <BarList items={statuses} max={Math.max(1, ...statuses.map((item) => item.value))} />
-          </article>
-        </div>
-
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Falhas mais frequentes</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>Classificação textual</span>
-            </header>
-            <BarList items={failures} max={Math.max(1, ...failures.map((item) => item.value))} />
-          </article>
-        </div>
-
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Tempo médio de atendimento</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>MTTR real</span>
-            </header>
-            <div className="d-flex flex-column align-items-center justify-content-center text-center mt-4" style={{ minHeight: '210px' }}>
-              <strong style={{ color: 'var(--color-text)', fontSize: 'clamp(2.4rem, 6vw, 3.8rem)', fontWeight: 800, lineHeight: 1 }}>
-                {mttrFormatted}
-              </strong>
-              <span className="text-secondary mt-3" style={{ fontSize: '0.86rem' }}>
-                Calculado sobre {resolvedOccurrences.length} atendimentos concluídos
-              </span>
-            </div>
-          </article>
-        </div>
-
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Locais com mais ocorrências</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>Top 5</span>
-            </header>
-            <BarList items={byClient} max={Math.max(1, ...byClient.map((item) => item.value))} />
-          </article>
-        </div>
-
-        <div className="col-12 col-md-6 col-xxl-4">
-          <article className="app-card p-4 h-100">
-            <header className="d-flex align-items-start justify-content-between gap-3 pb-3 border-bottom">
-              <h2 className="fs-6 mb-0">Evolução de chamados</h2>
-              <span className="text-secondary" style={{ fontSize: '0.68rem' }}>
-                Pico: {maxDaily} chamado{maxDaily > 1 ? 's' : ''}
-              </span>
-            </header>
-            <div className="d-flex align-items-end justify-content-between gap-1 mt-4 pt-2" style={{ height: '210px' }} aria-label="Chamados nos últimos sete dias">
-              {last7Days.map((day, index) => (
-                <div
-                  className="d-flex flex-column align-items-center flex-grow-1"
-                  style={{ height: '100%', gap: 'var(--space-2)' }}
-                  key={`${index}-${day.dateStr}`}
-                  title={`${day.dateStr}: ${day.count} chamado(s)`}
-                >
-                  <small className="text-secondary" style={{ fontSize: '0.68rem' }}>{day.count}</small>
-                  <i
-                    className="w-100 bg-primary opacity-75 rounded-top mt-auto"
-                    style={{ height: `${Math.max(4, (day.count / maxDaily) * 100)}%`, maxWidth: '28px' }}
-                  />
-                  <span className="text-secondary" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
-                    {day.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </article>
-        </div>
-      </section>
-    </>
-  );
+  const maxDay = Math.max(1, ...days.map((day) => day.value));
+  return <div className="analytics-page"><header className="page-header"><div><p className="page-header__subtitle">Indicadores operacionais e desempenho da assistência técnica</p><h1 className="page-header__title">Análises</h1></div><label className="analytics-period"><span>Período</span><select value={period} onChange={(event) => setPeriod(event.target.value)}><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label></header>
+    <section className="analytics-kpis" aria-label="Indicadores do período">{[
+      ['Ocorrências ativas', active.length, 'Abertas no período'],
+      ['Concluídas', concluded.length, 'Finalizadas no período'],
+      ['Tempo médio (MTTR)', formatMinutes(mttr), `${durations.length} conclusão(ões) com duração`],
+      ['Reincidências', recurrent.length, 'Mesmo equipamento em até 7 dias'],
+      ['Peças pendentes', pendingParts.length, 'Solicitações ainda em fluxo'],
+      ['SLA em risco', slaRisk.length, 'Próximo do limite ou excedido'],
+    ].map(([label, value, detail]) => <article className="app-card" key={label}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>)}</section>
+    <div className="analytics-grid"><section className="app-card analytics-card"><h2>Prioridade das ocorrências</h2><p>Distribuição dos {opened.length} chamados abertos</p><div className="analytics-priority">{severity.map((item) => <div key={item.label}><strong>{item.value}</strong><i style={{ height: `${Math.max(item.value ? 10 : 2, item.value / Math.max(1, ...severity.map((entry) => entry.value)) * 100)}%` }} /><span>{item.label}</span></div>)}</div></section><section className="app-card analytics-card"><h2>Etapas dos atendimentos</h2><p>Status atual dos chamados abertos no período</p><BarList items={stages} /></section><section className="app-card analytics-card"><h2>Tipos de falha</h2><p>Componente informado no diagnóstico</p><BarList items={failures} /></section><section className="app-card analytics-card analytics-mttr"><h2>Tempo médio de atendimento (MTTR)</h2><p>Entre abertura/atribuição e conclusão</p><strong>{formatMinutes(mttr)}</strong><small>Calculado sobre {durations.length} atendimento(s) concluído(s) com datas válidas</small></section><section className="app-card analytics-card"><h2>Locais com mais ocorrências</h2><p>Top 5 no período</p><BarList items={places} /></section><section className="app-card analytics-card"><h2>Evolução de chamados</h2><p>Aberturas por dia · últimos {period} dias</p><div className="analytics-days" role="img" aria-label="Gráfico de chamados abertos por dia">{days.map((day) => <div key={day.key} title={`${day.label}: ${day.value} chamado(s)`}><b>{day.value || ''}</b><i style={{ height: `${Math.max(day.value ? 8 : 2, day.value / maxDay * 100)}%` }} /><small>{day.label}</small></div>)}</div></section></div>
+  </div>;
 }

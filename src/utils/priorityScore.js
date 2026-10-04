@@ -51,6 +51,12 @@ const classifyPriority = (score) =>
  * @returns {PriorityCalculationResult}
  */
 export const calculatePriority = ({ occurrence, client, elevator, metadata = {}, now = new Date() }) => {
+  if (occurrence.serviceType === 'preventive') return {
+    score: 10,
+    classification: 'baixa',
+    reasons: ['Visita preventiva programada'],
+    elapsedMinutes: 0,
+  };
   let score = 5;
   const reasons = [];
   const openedAt = new Date(occurrence.time);

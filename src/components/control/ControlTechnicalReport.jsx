@@ -1,7 +1,7 @@
-import { useRef } from 'react';
 import StatusBadge from '../StatusBadge';
-import useDialogFocus from '../../hooks/useDialogFocus';
+import Modal from '../Modal';
 import { formatDateTime } from '../../utils/presentation';
+import { printOccurrenceReport } from '../../utils/controlReports';
 
 const asText = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean).join(' · ');
@@ -24,8 +24,6 @@ function ReportField({ label, value }) {
 }
 
 export default function ControlTechnicalReport({ occurrence, onClose }) {
-  const panelRef = useRef(null);
-  useDialogFocus(Boolean(occurrence), panelRef, onClose);
   if (!occurrence) return null;
 
   const report = occurrence.technicalReport || {};
@@ -42,13 +40,13 @@ export default function ControlTechnicalReport({ occurrence, onClose }) {
   const timeline = occurrence.workflowHistory || [];
 
   return (
-    <div className="control-panel-layer" role="dialog" aria-modal="true" aria-labelledby="control-report-title">
-      <button className="control-panel-backdrop" type="button" aria-label="Fechar relatório" onClick={onClose} />
-      <aside ref={panelRef} className="control-detail-panel control-report-panel" tabIndex="-1">
+    <Modal isOpen={Boolean(occurrence)} onClose={onClose} title="Relatório técnico final" titleId="control-report-title" showHeader={false} className="control-detail-panel control-report-panel" layerClassName="control-modal-layer control-detail-layer">
         <header>
           <div><p className="eyebrow eyebrow--dark">{occurrence.protocol}</p><h2 id="control-report-title">Relatório técnico final</h2></div>
           <button type="button" onClick={onClose} aria-label="Fechar">×</button>
         </header>
+        <div className="control-detail-panel__body">
+        <div className="control-report-print-action"><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOccurrenceReport(occurrence)}>Imprimir relatório da ocorrência</button></div>
 
         <div className="control-detail-panel__badges"><StatusBadge value="Concluída" />{occurrence.duration && <span className="control-report-panel__duration">Duração: {occurrence.duration}</span>}</div>
 
@@ -92,7 +90,7 @@ export default function ControlTechnicalReport({ occurrence, onClose }) {
             </ol>
           ) : <p className="control-report-panel__empty">Histórico das etapas não informado.</p>}
         </section>
-      </aside>
-    </div>
+        </div>
+    </Modal>
   );
 }

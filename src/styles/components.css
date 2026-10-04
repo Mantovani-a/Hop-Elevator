@@ -612,42 +612,51 @@
   }
 }
 
-.hop-notification-panel {
-  position: absolute;
-  z-index: 1080;
-  top: calc(100% + 10px);
-  right: 0;
-  width: min(390px, calc(100vw - 24px));
+.control-modal.hop-notification-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  min-height: 220px;
+  max-height: min(76dvh, 640px);
+  padding: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: var(--color-text);
   background: var(--color-surface);
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
 
-  > header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
+.control-modal.hop-notification-modal > header {
+  flex: 0 0 auto;
+  padding: 18px 24px;
+  background: var(--color-surface);
+}
 
-    div { display: grid; }
-    small { color: var(--color-text-muted); font-size: 0.7rem; }
+.hop-notification-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 
-    button {
-      border: 0;
-      color: var(--color-primary-text);
-      background: transparent;
-      font-size: 0.7rem;
-      font-weight: 750;
-    }
+  button {
+    border: 0;
+    color: var(--color-primary-action);
+    background: transparent;
+    font-size: 0.76rem;
+    font-weight: 750;
   }
 }
 
 .hop-notification-list {
-  max-height: min(460px, 65vh);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(55dvh, 480px);
+  padding: 8px 16px 16px;
   overflow-y: auto;
 
   > button {
@@ -658,6 +667,7 @@
     padding: var(--space-3) var(--space-4);
     border: 0;
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     color: var(--color-text);
     background: var(--color-surface);
     text-align: left;
@@ -677,12 +687,13 @@
   strong { font-size: 0.82rem; }
 
   small {
+    display: -webkit-box;
     overflow: hidden;
     color: var(--color-text-muted);
     font-size: 0.73rem;
     line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   time {

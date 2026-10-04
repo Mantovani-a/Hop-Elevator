@@ -3,6 +3,7 @@ import StatusBadge from '../StatusBadge';
 import { formatDateTime } from '../../utils/presentation';
 import { OPERATION_STATUS } from '../../data/operationStore';
 import { ModuleIcon } from '../ModuleSidebar';
+import { normalizeOccurrenceTeam } from '../../utils/occurrenceTeam.js';
 
 export default function OccurrenceQueueItem({ occurrence, workflowStatus }) {
   const resolved = workflowStatus === OPERATION_STATUS.RESOLVED;
@@ -19,6 +20,8 @@ export default function OccurrenceQueueItem({ occurrence, workflowStatus }) {
       aria-label={`Abrir ocorrência ${occurrence.id} de ${occurrence.client?.name || 'Cliente'}`}
     >
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        {normalizeOccurrenceTeam(occurrence).members.length > 1 && <span className="hop-badge hop-badge--baixa">Equipe · {normalizeOccurrenceTeam(occurrence).members.length} técnicos</span>}
+        {occurrence.serviceType === 'preventive' && <span className="hop-preventive-status">Preventiva</span>}
         <PriorityIndicator priority={occurrence.priority} compact />
         <StatusBadge value={workflowStatus} />
       </div>

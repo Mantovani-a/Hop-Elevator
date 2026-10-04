@@ -7,6 +7,7 @@ import {
 } from '../data/notificationStore';
 import { playNotificationSound } from '../utils/notificationSound';
 import { navigateTo } from '../utils/navigation';
+import Modal from './Modal';
 
 const formatNotificationTime = (value) => {
   const date = new Date(value);
@@ -51,7 +52,6 @@ export default function NotificationCenter({ module, recipientId = null }) {
   const state = useSyncExternalStore(subscribeNotifications, getNotificationSnapshot, getNotificationSnapshot);
   const [panelOpen, setPanelOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
-  const rootRef = useRef(null);
   const visibleNotifications = useMemo(
     () => state.notifications.filter((item) => item.module === module && (!item.recipientId || !recipientId || item.recipientId === recipientId)),
     [module, recipientId, state.notifications],
@@ -75,22 +75,13 @@ export default function NotificationCenter({ module, recipientId = null }) {
     playNotificationSound();
   }, [visibleNotifications]);
 
-  useEffect(() => {
-    if (!panelOpen) return undefined;
-    const closeOutside = (event) => {
-      if (!rootRef.current?.contains(event.target)) setPanelOpen(false);
-    };
-    document.addEventListener('pointerdown', closeOutside);
-    return () => document.removeEventListener('pointerdown', closeOutside);
-  }, [panelOpen]);
-
   const dismissToast = useCallback((notificationId, markRead) => {
     setToasts((current) => current.filter((item) => item.id !== notificationId));
     if (markRead) markNotificationRead(notificationId);
   }, []);
 
   return (
-    <div className="hop-notification-center" ref={rootRef}>
+    <div className="hop-notification-center">
       <button
         className="hop-notification-button"
         type="button"
@@ -102,26 +93,28 @@ export default function NotificationCenter({ module, recipientId = null }) {
         {unreadCount > 0 && <span>{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
 
-      {panelOpen && (
-        <section className="hop-notification-panel" aria-label="Notificações recentes">
-          <header>
-            <div>
-              <strong>Notificações</strong>
-              <small>{unreadCount ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia'}</small>
-            </div>
+      <Modal
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        title="Notificações"
+        titleId={`notifications-title-${module}`}
+        className="hop-notification-modal"
+      >
+          <div className="hop-notification-summary">
+            <span>{unreadCount ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia'}</span>
             {unreadCount > 0 && (
               <button type="button" onClick={() => markAllNotificationsRead(module, recipientId)}>
                 Marcar todas como lidas
               </button>
             )}
-          </header>
+          </div>
           <div className="hop-notification-list">
             {visibleNotifications.slice(0, 15).map((notification) => (
               <button
                 type="button"
                 className={notification.read ? '' : 'is-unread'}
                 key={notification.id}
-                onClick={() => openNotification(notification)}
+                onClick={() => { setPanelOpen(false); openNotification(notification); }}
               >
                 <span className="hop-notification-list__marker" aria-hidden="true" />
                 <span>
@@ -135,8 +128,7 @@ export default function NotificationCenter({ module, recipientId = null }) {
               <p className="hop-notification-empty">Nenhuma notificação recente.</p>
             )}
           </div>
-        </section>
-      )}
+      </Modal>
 
       <div className="hop-toast-stack" aria-live="polite" aria-atomic="false">
         {toasts.map((notification) => <NotificationToast key={notification.id} notification={notification} onDismiss={dismissToast} />)}

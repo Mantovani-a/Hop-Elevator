@@ -8,6 +8,8 @@ import { getWorkflowStep } from '../../utils/operatorWorkflow';
 import { formatDate, formatDateTime } from '../../utils/presentation';
 import { getSlaStatus } from '../../utils/slaCalculator';
 import { OPERATION_STATUS } from '../../data/operationStore';
+import OperatorTeamPanel from '../../components/operator/OperatorTeamPanel.jsx';
+import { normalizeOccurrenceTeam, teamMember, TEAM_STATUS } from '../../utils/occurrenceTeam.js';
 
 export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, onAdvance }) {
   if (!occurrence) {
@@ -17,6 +19,8 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
   const workflowStep = getWorkflowStep(workflowStatus);
   const isResolved = workflowStatus === OPERATION_STATUS.RESOLVED;
   const sla = getSlaStatus(occurrence);
+  const isLeader = normalizeOccurrenceTeam(occurrence).responsibleId === operatorTechnician.id;
+  const ownStatus = teamMember(occurrence, operatorTechnician.id)?.status;
 
   return (
     <>
@@ -30,7 +34,7 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
         <div className="d-flex flex-wrap align-items-center gap-3">
           <PriorityIndicator priority={occurrence.priority} />
           <StatusBadge value={workflowStatus} />
-          {sla && (
+          {sla && occurrence.serviceType !== 'preventive' && (
             <span
               className={`hop-badge ${sla.isBreached ? 'hop-badge--critica' : sla.isNearBreach ? 'hop-badge--atencao' : 'hop-badge--baixa'}`}
               title={sla.detail}
@@ -40,8 +44,11 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
           )}
         </div>
       </header>
+      {occurrence.serviceType === 'preventive' && <div className="app-card hop-operator-insight"><span>Atendimento programado</span><strong>Manutenção preventiva</strong><p>Inspecione o equipamento e registre a intervenção na conclusão da visita.</p></div>}
 
       {isResolved && <FeedbackMessage tone="success" title="Ocorrência resolvida">Este atendimento foi finalizado por João Carlos e já consta no histórico.</FeedbackMessage>}
+      <OperatorTeamPanel occurrence={occurrence} technicianId={operatorTechnician.id} />
+      {occurrence.teamNotes?.length > 0 && <section className="app-card p-3 mb-3"><h2 className="fs-5">Registros da equipe</h2>{occurrence.teamNotes.map((item, index) => <p key={`${item.at}-${index}`} className="mb-2"><strong>{item.technicianName}</strong> · {formatDateTime(item.at)}<br />{item.text}</p>)}</section>}
 
       <div className="d-flex flex-column flex-xl-row gap-4 align-items-start mt-4">
         <div className="d-flex flex-column gap-4 flex-grow-1 w-100" style={{ minWidth: 0 }}>
@@ -74,7 +81,7 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
               <div><dt className="detail-item-label">Pessoas presas</dt><dd className="detail-item-value">{occurrence.trappedPeople || 'Nenhuma informada'}</dd></div>
               <div><dt className="detail-item-label">Risco informado</dt><dd className="detail-item-value">{occurrence.metadata?.riskUnknown ? 'Não sei / a verificar' : occurrence.metadata?.riskToLife ? 'Sim — prioridade imediata' : 'Não'}</dd></div>
               <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Informações do cliente</dt><dd className="detail-item-value">{occurrence.metadata?.clientNotes || 'Sem observações adicionais.'}</dd></div>
-              {sla && <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Meta Contratual de SLA</dt><dd className="detail-item-value">{sla.label} · {sla.detail}</dd></div>}
+              {sla && occurrence.serviceType !== 'preventive' && <div style={{ gridColumn: '1 / -1' }}><dt className="detail-item-label">Meta Contratual de SLA</dt><dd className="detail-item-value">{sla.label} · {sla.detail}</dd></div>}
             </dl>
           </section>
 
@@ -92,7 +99,7 @@ export default function OperatorOccurrenceDetail({ occurrence, workflowStatus, o
           <p className="text-secondary mb-2" style={{ fontSize: '0.86rem' }}>Motivos considerados no cálculo:</p>
           <ul className="list-unstyled d-grid gap-2 mb-4 pb-4 border-bottom">{(occurrence.priority?.reasons || ['Avaliação operacional padrão']).map((reason) => <li className="d-flex align-items-center gap-2" style={{ fontSize: '0.84rem', fontWeight: 650 }} key={reason}><span className="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-circle text-primary bg-primary bg-opacity-10" style={{ width: '1.4rem', height: '1.4rem', fontSize: '0.66rem' }} aria-hidden="true">✓</span>{reason}</li>)}</ul>
           <div className="d-flex align-items-center gap-3 pb-4 mb-4 border-bottom"><ProfileAvatar name={operatorTechnician.name} src={operatorTechnician.avatar} size="md" decorative /><div><span className="d-block text-secondary" style={{ fontSize: '0.78rem' }}>Técnico responsável</span><strong className="d-block" style={{ color: 'var(--color-text)' }}>{operatorTechnician.name}</strong></div></div>
-          {!isResolved && <button className="btn btn-primary btn-lg w-100 fw-bold" type="button" onClick={() => onAdvance(occurrence.id)}>{workflowStep.action}</button>}
+          {!isResolved && ownStatus !== TEAM_STATUS.FINISHED && (isLeader ? <button className="btn btn-primary btn-lg w-100 fw-bold" type="button" onClick={() => onAdvance(occurrence.id)}>{workflowStep.action}</button> : ownStatus === TEAM_STATUS.ON_SITE ? <a className="btn btn-primary btn-lg w-100 fw-bold" href={`#/operator/service/${occurrence.id}`}>Registrar participação</a> : <button className="btn btn-primary btn-lg w-100 fw-bold" type="button" onClick={() => onAdvance(occurrence.id)}>{ownStatus === TEAM_STATUS.TRAVELING ? 'Registrar chegada' : 'Iniciar deslocamento'}</button>)}
           {workflowStatus === OPERATION_STATUS.TRAVELING && <a className="btn btn-outline-primary w-100 mt-3" href={`#/operator/service/${occurrence.id}`}>Ver rota</a>}
           {isResolved && <a className="btn btn-outline-primary w-100 fw-bold" href="#/operator/history">Ver no histórico</a>}
         </aside>
