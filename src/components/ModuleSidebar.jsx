@@ -1,5 +1,6 @@
 import HopLogo from './HopLogo';
 import ProfileAvatar from './ProfileAvatar';
+import SyncStatusBadge from './SyncStatusBadge';
 
 const navigationIcons = {
   phone: 'M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.9L8.7 10.7a16 16 0 0 0 4.6 4.6l1.3-1.3a2 2 0 0 1 1.9-.6l2.8.5a2 2 0 0 1 1.7 2Z',
@@ -69,6 +70,9 @@ export default function ModuleSidebar({
             );
           })}
         </nav>
+        <div className="px-3 pb-2">
+          <SyncStatusBadge />
+        </div>
         <div className="module-sidebar__user">
           <ProfileAvatar name={profile.name} src={profile.avatar} category={profile.category} size="md" className="module-sidebar__avatar" decorative />
           <div><strong>{profile.name}</strong><small>{profile.detail}</small></div>

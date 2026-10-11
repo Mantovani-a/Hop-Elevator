@@ -126,15 +126,24 @@ Uma gravação:
 2. ignora a operação se ocorrências e turno não mudaram;
 3. atualiza o cache antes do armazenamento;
 4. grava uma vez no `localStorage`;
-5. dispara `hop-operation-updated` uma vez.
+5. dispara `hop-operation-updated` uma vez;
+6. transmite o estado atualizado para o Firebase Realtime Database (`broadcastOperationState`) caso configurado.
 
-A assinatura também escuta `storage`, permitindo sincronização entre abas. Ambos os listeners possuem cleanup. Efeitos temporizados, eventos de teclado, preferência do sistema e animação do mapa também removem seus recursos ao desmontar.
+A assinatura escuta o evento de janela `hop-operation-updated`, o evento `storage` (para abas no mesmo computador) e o listener em tempo real do Firebase (`onValue`), permitindo sincronização instantânea entre múltiplos dispositivos físicos (Notebook, Tablet e Smartphone) sem a necessidade de um backend dedicado.
 
-## 7. localStorage
+## 7. Sincronização em tempo real (Firebase Realtime Database)
+
+O HOP suporta sincronização multidispositivo em tempo real gerenciada pelo Firebase Realtime Database (`src/config/firebase.js` e `src/data/firebaseSync.js`).
+
+- **Variáveis de ambiente:** Configuradas no arquivo `.env.local` e nas configurações de variáveis de ambiente da Vercel.
+- **Resiliência:** Caso as chaves do Firebase não estejam configuradas ou a rede caia, a aplicação opera silenciosamente no modo local utilizando `localStorage`.
+- **Reset síncrono:** Ao clicar em “Restaurar dados de demonstração”, o estado da sessão na nuvem também é resetado (`resetRemoteOperationState`), voltando todas as telas conectadas para o estado inicial da demonstração simultaneamente.
+
+## 8. localStorage
 
 | Chave | Conteúdo |
 | --- | --- |
-| `hop-shared-operation-v1` | versão, horário, estado do turno do Operator e lista única de ocorrências |
+| `hop-shared-operation-v5` | versão, horário, estado do turno do Operator e lista única de ocorrências |
 | `hop-theme` | `light` ou `dark` |
 
 O estado é lido na inicialização do hook e gravado apenas por `addOperationOccurrence`, `updateOperationOccurrence`, `writeOperationState` ou `resetOperationState`. Não edite o JSON manualmente durante a aplicação aberta.

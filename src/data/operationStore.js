@@ -4,6 +4,11 @@ import { calculatePriority } from '../utils/priorityScore.js';
 import { resolveAutomaticDispatch } from '../utils/dispatchRecommendation.js';
 import { publishOperationNotifications, resetNotifications } from './notificationStore.js';
 import { OPERATION_STATUS } from './operationStatus.js';
+import {
+  initFirebaseRealtimeSync,
+  broadcastOperationState,
+  resetRemoteOperationState,
+} from './firebaseSync.js';
 
 export { OPERATION_STATUS };
 
@@ -217,7 +222,7 @@ const readOperationState = () => {
   }
 };
 
-const writeOperationState = (state, { force = false } = {}) => {
+const writeOperationState = (state, { force = false, skipBroadcast = false } = {}) => {
   try {
     const nextState = { ...normalizeState(state), updatedAt: new Date().toISOString() };
     const currentState = readOperationState();
@@ -238,12 +243,62 @@ const writeOperationState = (state, { force = false } = {}) => {
       }
     }
     window.dispatchEvent(new CustomEvent(OPERATION_UPDATED_EVENT));
+    if (!skipBroadcast) {
+      broadcastOperationState(cachedNextState);
+    }
     return cachedNextState;
   } catch (err) {
     console.error('HOP: Erro na escrita do estado operacional. Recuperando estado seguro.', err);
     return cachedOperationState || cacheState(createInitialOperationState());
   }
 };
+
+/**
+ * Aplica atualizações recebidas da nuvem (Firebase Realtime Database)
+ * mantendo estabilidade referencial e sem eco de eventos.
+ *
+ * @param {Object} remoteState
+ */
+export const applyRemoteOperationState = (remoteState) => {
+  try {
+    if (!remoteState || typeof remoteState !== 'object') return;
+    const currentState = readOperationState();
+    const normalized = normalizeState(remoteState);
+    if (!normalized || !Array.isArray(normalized.occurrences)) return;
+
+    if (
+      currentState.operatorShiftActive === normalized.operatorShiftActive &&
+      JSON.stringify(currentState.occurrences) === JSON.stringify(normalized.occurrences)
+    ) {
+      return;
+    }
+
+    const cachedNextState = cacheState(normalized);
+    try {
+      window.localStorage.setItem(OPERATION_STORAGE_KEY, cachedRawState);
+    } catch {
+      /* fallback memória */
+    }
+
+    try {
+      publishOperationNotifications(currentState, cachedNextState);
+    } catch {
+      /* noop */
+    }
+
+    window.dispatchEvent(new CustomEvent(OPERATION_UPDATED_EVENT));
+  } catch (err) {
+    console.warn('HOP: Falha ao aplicar estado recebido do Firebase:', err);
+  }
+};
+
+// Inicializa a ponte do Firebase Realtime
+initFirebaseRealtimeSync({
+  onRemoteStateReceived: applyRemoteOperationState,
+  onInitialSeedNeeded: () => {
+    broadcastOperationState(readOperationState());
+  },
+});
 
 /**
  * Inserts a new occurrence into the shared operational store, automatically
@@ -335,6 +390,7 @@ export const resetOperationState = () => {
     // A restauração ainda atualiza a fonte em memória.
   }
   resetNotifications();
+  resetRemoteOperationState(initialState);
   return writeOperationState(initialState, { force: true });
 };
 
