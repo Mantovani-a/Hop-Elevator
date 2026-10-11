@@ -41,7 +41,7 @@ export const subscribeSyncStatus = (callback) => {
  * @param {{ onRemoteStateReceived: (remoteState: Object) => void }} options
  */
 export const initFirebaseRealtimeSync = ({ onRemoteStateReceived, onInitialSeedNeeded }) => {
-  if (!isFirebaseConfigured || !database || isInitialized) return;
+  if (typeof window === 'undefined' || !isFirebaseConfigured || !database || isInitialized) return;
   isInitialized = true;
 
   try {
