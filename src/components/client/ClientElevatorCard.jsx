@@ -44,6 +44,7 @@ export default function ClientElevatorCard({ elevator, onSupport, onViewCall, ac
               <span className="fw-bold">→</span>
             </div>
           )}
+          {elevator.preventive && <div className="hop-client-preventive"><span>{elevator.preventiveLabel}</span><strong>{new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(`${elevator.preventive.date}T12:00:00`))} · {elevator.preventive.window}</strong><small>{elevator.preventiveLabel === 'Última preventiva' ? 'Visita concluída pela HOP' : 'Visita programada pela HOP'}</small></div>}
         </div>
       </div>
 

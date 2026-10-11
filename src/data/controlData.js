@@ -11,6 +11,7 @@ import { calculatePriority } from '../utils/priorityScore.js';
 import { getProfilePhotoPath } from '../utils/profileAvatar.js';
 import { clientGeoPositions } from './geoCoordinates.js';
 import { OPERATION_STATUS } from './operationStore.js';
+import { isTeamMember, teamMember, TEAM_STATUS } from '../utils/occurrenceTeam.js';
 
 export const controlUser = {
   id: 'CONTROL-USER-001',
@@ -95,8 +96,8 @@ export const buildControlOccurrences = (operationState, now = new Date()) => {
 
 export const buildControlTechnicians = (controlOccurrences, operatorShiftActive = true) => technicians.map((technician, index) => {
   const technicianOccurrences = controlOccurrences.filter((occurrence) =>
-    occurrence.technicianId === technician.id && occurrence.operationalStatus !== OPERATION_STATUS.RESOLVED);
-  const executionOccurrence = technicianOccurrences.find((occurrence) => [
+    isTeamMember(occurrence, technician.id) && teamMember(occurrence, technician.id)?.status !== TEAM_STATUS.FINISHED && occurrence.operationalStatus !== OPERATION_STATUS.RESOLVED);
+  const executionOccurrence = technicianOccurrences.find((occurrence) => [TEAM_STATUS.TRAVELING, TEAM_STATUS.ON_SITE].includes(teamMember(occurrence, technician.id)?.status) || [
     OPERATION_STATUS.ACCEPTED,
     OPERATION_STATUS.TRAVELING,
     OPERATION_STATUS.TRAVELING_TO_PICKUP,
@@ -108,7 +109,7 @@ export const buildControlTechnicians = (controlOccurrences, operatorShiftActive 
   let status = technician.status;
 
   if (technicianOccurrences.length > 0) {
-    if ([OPERATION_STATUS.TRAVELING, OPERATION_STATUS.TRAVELING_TO_PICKUP, OPERATION_STATUS.RETURNING_TO_CLIENT].includes(currentOccurrence?.operationalStatus)) {
+    if (teamMember(currentOccurrence, technician.id)?.status === TEAM_STATUS.TRAVELING) {
       status = 'em deslocamento';
     } else {
       status = 'em atendimento';
@@ -122,14 +123,10 @@ export const buildControlTechnicians = (controlOccurrences, operatorShiftActive 
   }
 
   const resolvedForTechnician = controlOccurrences.filter((occurrence) =>
-    occurrence.technicianId === technician.id && occurrence.operationalStatus === OPERATION_STATUS.RESOLVED);
-  const completedToday = technician.id === 'TEC-010' ? resolvedForTechnician.length : 1 + (index % 4);
-  const recentHistory = technician.id === 'TEC-010' && resolvedForTechnician.length === 0
-    ? ['Nenhum atendimento finalizado hoje']
-    : [
-        `${10 + (index % 4)}:${index % 2 ? '35' : '10'} — Atendimento concluído`,
-        `Ontem — ${technician.specialty}`,
-      ];
+    isTeamMember(occurrence, technician.id) && occurrence.operationalStatus === OPERATION_STATUS.RESOLVED);
+  const today = new Date().toDateString();
+  const completedToday = resolvedForTechnician.filter((item) => item.completedAt && new Date(item.completedAt).toDateString() === today).length;
+  const recentHistory = resolvedForTechnician.sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
 
   if (technician.id === 'TEC-010' && !operatorShiftActive) status = 'indisponível';
   return {

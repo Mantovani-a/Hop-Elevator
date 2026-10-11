@@ -1,4 +1,5 @@
 import { OPERATION_STATUS } from '../data/operationStatus.js';
+import { componentRecurrences } from '../data/technicalIntelligence.js';
 
 export const criticalWaitingStatuses = new Set([
   OPERATION_STATUS.WAITING_ASSIGNMENT,
@@ -99,17 +100,17 @@ export const buildRecurrenceAlerts = (occurrences, active) => {
 
   return [...byElevator.entries()].flatMap(([elevatorId, related]) => {
     const activeOccurrence = active.find((occurrence) => occurrence.elevatorId === elevatorId);
-    if (!activeOccurrence || related.length < 2) return [];
-    return [{
+    if (!activeOccurrence) return [];
+    return componentRecurrences(related, elevatorId).map((item) => ({
       occurrence: activeOccurrence,
-      title: `${activeOccurrence.elevator?.identification || 'Elevador'} é reincidente em múltiplas falhas`,
-      detail: `${activeOccurrence.client?.name} · ${related.length} ocorrências registradas`,
+      title: `${item.label} com falhas repetidas`,
+      detail: `${activeOccurrence.elevator?.identification || 'Elevador'} · ${item.count} registros em 30 dias · verificar causa raiz`,
       action: 'Ver histórico',
       actionType: 'elevator-history',
       elevatorId,
       tone: 'attention',
-      rank: 70,
-      alertKey: `recurrence-${elevatorId}-${related.length}`,
-    }];
+      rank: 72,
+      alertKey: `component-recurrence-${elevatorId}-${item.componentId}-${item.count}`,
+    }));
   });
 };

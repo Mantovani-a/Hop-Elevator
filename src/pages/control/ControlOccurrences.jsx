@@ -2,6 +2,8 @@ import { useState } from 'react';
 import StatusBadge from '../../components/StatusBadge';
 import { formatDateTime, formatElapsedMinutes } from '../../utils/presentation';
 import { OPERATION_STATUS } from '../../data/operationStore';
+import HopFilterBar from '../../components/HopFilterBar';
+import { printOpenOccurrencesReport } from '../../utils/controlReports';
 
 const filters = [
   ['all', 'Todas'], ['active', 'Ativas'], ['attending', 'Em atendimento'], ['waiting-part', 'Aguardando peça'], ['completed', 'Concluídas'], ['parts', 'Peças'], ['support', 'Suporte'], ['critical', 'Críticas'], ['unassigned', 'Sem técnico'], ['traveling', 'Em deslocamento'],
@@ -86,22 +88,11 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
         </div>
         <div className="d-flex gap-3 align-items-center">
           <span className="hop-badge px-3 py-2">{active.length} ativas</span>
+          <button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOpenOccurrencesReport(occurrences)}>Imprimir ocorrências em aberto</button>
         </div>
       </header>
 
-      <div className="d-flex gap-2 my-3 pb-1 overflow-x-auto" role="group" aria-label="Filtrar ocorrências">
-        {filters.map(([id, label]) => (
-          <button
-            key={id}
-            className={`btn btn-sm rounded-pill text-nowrap flex-shrink-0 ${filter === id ? 'btn-primary' : 'btn-outline-secondary'}`}
-            aria-pressed={filter === id}
-            type="button"
-            onClick={() => setFilter(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <HopFilterBar label="Filtrar ocorrências" quick={filters} active={filter} onQuickChange={setFilter} count={filtered.length} total={occurrences.length} hasFilters={filter !== 'all'} onClear={() => setFilter('all')} />
 
       {filter !== 'completed' && (
         <ControlPartPendingPanel
@@ -110,10 +101,10 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
         />
       )}
 
-      <section className="app-card overflow-hidden" aria-label="Fila de ocorrências">
-        <div className="w-100 overflow-x-auto">
-          <table className="w-100 table table-hover mb-0" style={{ minWidth: '1120px', fontSize: '0.8rem' }}>
-            <thead className="text-secondary text-uppercase" style={{ backgroundColor: 'var(--color-surface-hover)', fontSize: '0.68rem', letterSpacing: '0.04em' }}>
+      <section className="app-card control-occurrences-list" aria-label="Fila de ocorrências">
+        <div className="control-occurrences-scroll">
+          <table className="w-100 table mb-0 control-occurrences-table">
+            <thead>
               <tr>
                 <th className="p-3 fw-bold border-0">Protocolo</th>
                 <th className="p-3 fw-bold border-0">Prioridade</th>
@@ -143,16 +134,16 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
                       </button>
                     </td>
                     <td className="p-3 align-middle">
-                      <div className="d-flex align-items-center">
+                      <div className="control-priority-unit">
                         <StatusBadge value={occurrence.priority?.classification || 'baixa'} type="severity" />
-                        <strong className="ms-2 fs-6">{occurrence.priority?.score ?? 0}</strong>
+                        <strong>{occurrence.priority?.score ?? 0}</strong>
                       </div>
                     </td>
                     <td className="p-3 align-middle">
                       <strong className="d-block" style={{ color: 'var(--color-text)' }}>
                         {occurrence.client?.name || 'Cliente'}
                       </strong>
-                      <small className="d-block text-secondary mt-1 text-truncate" style={{ maxWidth: '270px' }}>
+                      <small className="control-occurrence-muted">
                         {occurrence.client?.type || 'Estabelecimento'}
                       </small>
                     </td>
@@ -160,14 +151,14 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
                       <strong className="d-block" style={{ color: 'var(--color-text)' }}>
                         {occurrence.elevator?.identification || 'Elevador'}
                       </strong>
-                      <small className="d-block text-secondary mt-1 text-truncate" style={{ maxWidth: '270px' }}>
+                      <small className="control-occurrence-problem">
                         {occurrence.partRequest
                           ? `${occurrence.partRequest.part} ×${occurrence.partRequest.quantity} · ${occurrence.partRequest.state}`
                           : occurrence.description || 'Intercorrência reportada'}
                       </small>
                     </td>
                     <td className="p-3 align-middle">
-                      {occurrence.technician?.name || <span className="text-danger fw-bold">Sem técnico</span>}
+                      {occurrence.technician?.name ? `${occurrence.technician.name}${(occurrence.team?.members?.length || 0) > 1 ? ` +${occurrence.team.members.length - 1}` : ''}` : <span className="control-no-technician">Sem técnico</span>}
                       {occurrence.metadata?.requiresReassignment && (
                         <small className="d-block text-danger fw-bold mt-1">Técnico indisponível · reatribuir</small>
                       )}
@@ -175,7 +166,7 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
                     <td className="p-3 align-middle">
                       <StatusBadge value={isCompleted ? 'Concluída' : occurrence.operationalStatus} />
                     </td>
-                    <td className="p-3 align-middle fw-bold">
+                    <td className="p-3 align-middle fw-bold control-occurrence-time">
                       {isCompleted ? (
                         <>
                           <span className="d-block">{formatDateTime(occurrence.completedAt)}</span>
@@ -190,7 +181,7 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
                     <td className="p-3 align-middle">
                       {isCompleted ? (
                         <button
-                          className="btn btn-sm btn-outline-primary text-nowrap"
+                          className="btn btn-sm btn-outline-primary text-nowrap control-occurrence-action"
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
@@ -201,7 +192,7 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
                         </button>
                       ) : (
                         <button
-                          className="btn btn-sm btn-link p-0 text-decoration-none text-nowrap"
+                          className="btn btn-sm btn-outline-primary text-nowrap control-occurrence-action"
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();

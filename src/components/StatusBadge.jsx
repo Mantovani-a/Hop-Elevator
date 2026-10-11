@@ -1,4 +1,4 @@
-import { statusToneClass } from '../utils/presentation';
+import { displayStatus, statusToneClass } from '../utils/presentation';
 
 export default function StatusBadge({ value, type = 'status' }) {
   const isSeverity = type === 'severity';
@@ -7,7 +7,7 @@ export default function StatusBadge({ value, type = 'status' }) {
   return (
     <span className={`hop-badge hop-badge--${isSeverity ? 'severity' : 'status'} ${toneClass}`}>
       <span className="hop-badge__marker" aria-hidden="true">{isSeverity ? '!' : '●'}</span>
-      {value}
+      {displayStatus(value)}
     </span>
   );
 }

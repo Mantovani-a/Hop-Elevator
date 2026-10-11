@@ -3,8 +3,9 @@ import StatusBadge from '../../components/StatusBadge';
 import ControlElevatorDetailModal from '../../components/control/ControlElevatorDetailModal';
 import { ModuleIcon } from '../../components/ModuleSidebar';
 import { getLocationIconName } from '../../utils/locationIcon';
-import { statusToneClass } from '../../utils/presentation';
+import { displayStatus, statusToneClass } from '../../utils/presentation';
 import { navigateTo } from '../../utils/navigation';
+import HopFilterBar from '../../components/HopFilterBar';
 
 const normalizeText = (value = '') =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -102,89 +103,37 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
 
   return (
     <>
-      <header className="page-header">
+      <header className="page-header control-elevators-header">
         <div>
           <p className="page-header__subtitle">Parque monitorado</p>
           <h1 className="page-header__title">Elevadores</h1>
         </div>
         <span className="hop-badge px-3 py-2">
-          {elevators.filter((item) => item.status === 'operando').length} operando
+          {elevators.filter((item) => item.status === 'operando').length} Operando
         </span>
       </header>
 
-      <section className="control-elevator-filters" aria-label="Filtros de elevadores">
-        <label className="control-elevator-search">
-          <span>Buscar</span>
-          <input
-            type="search"
-            value={filters.search}
-            onChange={(event) => updateFilter('search', event.target.value)}
-            placeholder="Cliente, elevador, código ou modelo"
-          />
-        </label>
-        <label>
-          <span>Status</span>
-          <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
-            <option value="todos">Todos</option>
-            <option value="operando">Operando</option>
-            <option value="atencao">Atenção</option>
-            <option value="em atendimento">Em atendimento</option>
-            <option value="parado">Parado</option>
-          </select>
-        </label>
-        <label>
-          <span>Local / cliente</span>
-          <select value={filters.client} onChange={(event) => updateFilter('client', event.target.value)}>
-            <option value="todos">Todos</option>
-            {clients.map((client) => (
-              <option value={client.id || client.name} key={client.id || client.name}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Tipo</span>
-          <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}>
-            <option value="todos">Todos</option>
-            {types.map((type) => (
-              <option value={type} key={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Ocorrência</span>
-          <select value={filters.occurrence} onChange={(event) => updateFilter('occurrence', event.target.value)}>
-            <option value="todos">Todos</option>
-            <option value="ativa">Com ocorrência ativa</option>
-            <option value="sem-ativa">Sem ocorrência ativa</option>
-            <option value="recentes">Com ocorrências recentes</option>
-          </select>
-        </label>
-        <div className="control-elevator-filter-actions">
-          <button
-            type="button"
-            role="switch"
-            className={`control-switch-btn${filters.attentionOnly ? ' is-active' : ''}`}
-            aria-checked={filters.attentionOnly}
-            onClick={() => updateFilter('attentionOnly', !filters.attentionOnly)}
-          >
-            <span className="control-switch-thumb" aria-hidden="true" />
-            Somente atenção / críticos
-          </button>
-          <button type="button" disabled={!hasFilters} onClick={() => setFilters(initialFilters)}>
-            Limpar filtros
-          </button>
-        </div>
-        <p aria-live="polite">
-          <strong>{filteredElevators.length}</strong> de {elevators.length} elevadores exibidos
-        </p>
-      </section>
+      <HopFilterBar
+        label="Filtros de elevadores"
+        search={<label><span>Buscar</span><input type="search" value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Cliente, elevador, código ou modelo" /></label>}
+        quick={[["todos", "Todos"], ["operando", "Operando"], ["atencao", "Atenção"], ["em atendimento", "Em atendimento"], ["parado", "Parado"]]}
+        active={filters.status}
+        advancedActive={filters.client !== 'todos' || filters.type !== 'todos' || filters.occurrence !== 'todos' || filters.attentionOnly}
+        onQuickChange={(value) => updateFilter('status', value)}
+        count={filteredElevators.length}
+        total={elevators.length}
+        hasFilters={hasFilters}
+        onClear={() => setFilters(initialFilters)}
+        advanced={<div className="hop-filter-bar__fields">
+          <label><span>Local / cliente</span><select value={filters.client} onChange={(event) => updateFilter('client', event.target.value)}><option value="todos">Todos</option>{clients.map((client) => <option value={client.id || client.name} key={client.id || client.name}>{client.name}</option>)}</select></label>
+          <label><span>Tipo</span><select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}><option value="todos">Todos</option>{types.map((type) => <option value={type} key={type}>{type}</option>)}</select></label>
+          <label><span>Ocorrência</span><select value={filters.occurrence} onChange={(event) => updateFilter('occurrence', event.target.value)}><option value="todos">Todos</option><option value="ativa">Com ocorrência ativa</option><option value="sem-ativa">Sem ocorrência ativa</option><option value="recentes">Com ocorrências recentes</option></select></label>
+          <button type="button" role="switch" className={`control-switch-btn${filters.attentionOnly ? ' is-active' : ''}`} aria-checked={filters.attentionOnly} onClick={() => updateFilter('attentionOnly', !filters.attentionOnly)}><span className="control-switch-track" aria-hidden="true"><span className="control-switch-thumb" /></span><span>Somente atenção / críticos</span></button>
+        </div>}
+      />
 
       {filteredElevators.length > 0 ? (
-        <section className="control-elevator-grid mt-4" aria-label="Lista de elevadores monitorados">
+        <section className="control-elevator-grid" aria-label="Lista de elevadores monitorados">
           {filteredElevators.map((elevator) => {
             const locationIcon = getLocationIconName(elevator.client);
             const toneClass = statusToneClass(elevator.status);
@@ -196,13 +145,18 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
                 type="button"
                 className={`control-elevator-card ${toneClass}`}
                 onClick={() => handleSelectElevator(elevator, 'resumo')}
-                aria-label={`Abrir ficha de ${elevator.identification}, ${elevator.client?.name || ''}, status ${elevator.status || 'operando'}`}
+                aria-label={`Abrir ficha de ${elevator.identification}, ${elevator.client?.name || ''}, status ${displayStatus(elevator.status || 'operando')}`}
               >
                 <div className="control-elevator-card__header">
-                  <span className="control-elevator-card__icon" aria-hidden="true">
-                    <ModuleIcon name={locationIcon} size={22} />
+                  <span className="control-elevator-card__header-left">
+                    <span className="control-elevator-card__icon" aria-hidden="true">
+                      <ModuleIcon name={locationIcon} size={22} />
+                    </span>
+                    <StatusBadge value={elevator.status || 'operando'} />
                   </span>
-                  <StatusBadge value={elevator.status || 'operando'} />
+                  <span className="control-elevator-card__menu" aria-hidden="true">
+                    <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor"><circle cx="8" cy="4" r="1.5" /><circle cx="8" cy="10" r="1.5" /><circle cx="8" cy="16" r="1.5" /></svg>
+                  </span>
                 </div>
 
                 <div className="control-elevator-card__main">
@@ -212,20 +166,16 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
                   <h2 className="control-elevator-card__title">
                     {elevator.identification || 'Elevador'}
                   </h2>
-                  <span className="control-elevator-card__code">
-                    {getElevatorType(elevator)} · {elevator.id}
-                  </span>
                 </div>
 
                 <div className="control-elevator-card__footer">
-                  {hasActiveOccurrence ? (
+                  <span className="control-elevator-card__code">
+                    <ModuleIcon name="elevator" size={15} /> {elevator.id}
+                  </span>
+                  {hasActiveOccurrence && (
                     <span className="control-elevator-card__alert">
                       <span className="control-elevator-card__alert-dot" aria-hidden="true" />
-                      Chamado em andamento ({elevator.activeOccurrence.protocol})
-                    </span>
-                  ) : (
-                    <span className="control-elevator-card__normal">
-                      Equipamento monitorado
+                      Ocorrência ativa
                     </span>
                   )}
                   <span className="control-elevator-card__action">Ver ficha →</span>
@@ -243,6 +193,7 @@ export default function ControlElevators({ elevators, historyElevatorId = null }
 
       <ControlElevatorDetailModal
         elevator={selectedElevator}
+        elevatorType={selectedElevator ? getElevatorType(selectedElevator) : undefined}
         initialTab={detailTab}
         onClose={handleCloseDetail}
       />

@@ -206,6 +206,8 @@ export function ElevatorModelScope({ elevatorId, children }) {
   modelUrlRef.current = modelUrl;
 
   const currentRecordRef = useRef(null);
+  const activeElevatorIdRef = useRef(elevatorId);
+  activeElevatorIdRef.current = elevatorId;
 
   const cleanupUrl = useCallback(() => {
     if (modelUrlRef.current && modelUrlRef.current.startsWith('blob:')) {
@@ -231,6 +233,7 @@ export function ElevatorModelScope({ elevatorId, children }) {
     setRestoredFromDB(false);
     try {
       const saved = await loadModelFromDB(targetId);
+      if (String(activeElevatorIdRef.current) !== String(targetId)) return;
       cleanupUrl();
       if (saved && saved.blob) {
         const url = URL.createObjectURL(saved.blob);
@@ -240,6 +243,12 @@ export function ElevatorModelScope({ elevatorId, children }) {
         setModelFormat(saved.format || detectFormat(saved.fileName));
         setModelFileName(saved.fileName);
         setParts(Array.isArray(saved.parts) ? saved.parts : []);
+      } else if (saved?.source === 'builtin') {
+        currentRecordRef.current = saved;
+        setModelUrl(defaultModelUrl);
+        setModelFormat('glb');
+        setModelFileName(saved.fileName || 'HOPElevador.glb (Padrão)');
+        setParts(Array.isArray(saved.parts) ? saved.parts : []);
       } else {
         currentRecordRef.current = null;
         setModelUrl(null);
@@ -248,9 +257,9 @@ export function ElevatorModelScope({ elevatorId, children }) {
         setParts([]);
       }
     } catch (err) {
-      console.warn('Erro ao carregar modelo do elevador:', err);
+      if (String(activeElevatorIdRef.current) === String(targetId)) console.warn('Erro ao carregar modelo do elevador:', err);
     } finally {
-      setRestoredFromDB(true);
+      if (String(activeElevatorIdRef.current) === String(targetId)) setRestoredFromDB(true);
     }
   }, [cleanupUrl]);
 
@@ -340,18 +349,30 @@ export function ElevatorModelScope({ elevatorId, children }) {
 
   const loadDefaultModel = useCallback(async () => {
     if (!elevatorId) return;
-    cleanupUrl();
-    setModelUrl(defaultModelUrl);
-    setModelFormat('glb');
-    setModelFileName('HOPElevador.glb (Padrão)');
-    setParts([]);
+    setIsProcessing(true);
     setError(null);
-  }, [elevatorId, cleanupUrl]);
+    try {
+      const record = { source: 'builtin', fileName: 'HOPElevador.glb (Padrão)', format: 'glb', parts: [] };
+      await saveModelToDB(elevatorId, record);
+      if (String(activeElevatorIdRef.current) !== String(elevatorId)) return;
+      cleanupUrl();
+      currentRecordRef.current = record;
+      setModelUrl(defaultModelUrl);
+      setModelFormat('glb');
+      setModelFileName(record.fileName);
+      setParts([]);
+      notifyChange(elevatorId);
+    } catch (err) {
+      setError(err.message || 'Não foi possível vincular o modelo padrão.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [elevatorId, cleanupUrl, notifyChange]);
 
   const registerParts = useCallback((scene) => {
     const extracted = extractParts(scene);
     setParts(extracted);
-    if (elevatorId && currentRecordRef.current?.blob) {
+    if (elevatorId && (currentRecordRef.current?.blob || currentRecordRef.current?.source === 'builtin')) {
       saveModelToDB(elevatorId, {
         ...currentRecordRef.current,
         parts: extracted,

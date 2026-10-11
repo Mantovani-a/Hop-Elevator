@@ -17,7 +17,7 @@ const isRouteActive = (currentRoute, itemRoute) => {
   return currentRoute === itemRoute;
 };
 
-export default function OperatorShell({ route, technician, onEndShift, onSimulate, children }) {
+export default function OperatorShell({ route, technician, onOpenShift, shiftStatus, onSimulate, children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
@@ -35,7 +35,7 @@ export default function OperatorShell({ route, technician, onEndShift, onSimulat
             <NotificationCenter module="operator" recipientId={technician.id} />
             <DemoHomeLink />
             <ThemeToggle compact />
-            <button className="btn btn-sm btn-outline-primary operator-end-shift" type="button" onClick={onEndShift}>Encerrar turno</button>
+            <button className="btn btn-sm btn-outline-primary operator-end-shift" type="button" onClick={onOpenShift}>Meu turno · {shiftStatus === 'break' ? 'Em intervalo' : 'Ativo'}</button>
           </div>
         </header>
         <main className="module-main operator-main">{children}</main>
