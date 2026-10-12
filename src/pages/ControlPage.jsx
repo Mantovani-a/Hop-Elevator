@@ -219,6 +219,9 @@ export default function ControlPage({ route = '/control' }) {
     pageContent = (
       <ControlTechnicians
         technicians={controlTechnicians}
+        occurrences={controlOccurrences}
+        shiftEvents={operationState.shiftEvents}
+        shiftPlan={operationState.operatorShiftPlan}
         onSelectTechnician={setSelectedTechnicianId}
       />
     );
@@ -226,6 +229,7 @@ export default function ControlPage({ route = '/control' }) {
     pageContent = (
       <ControlElevators
         elevators={elevatorOverview}
+        plans={operationState.preventives || []}
         historyElevatorId={historyElevatorId}
       />
     );

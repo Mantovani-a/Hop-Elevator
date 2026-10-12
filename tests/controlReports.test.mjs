@@ -51,4 +51,41 @@ test('relatórios usam o mesmo cabeçalho A4 e só incluem registros pertinentes
   assert.match(printedHtml, /09:00–11:00/);
 });
 
+test('relatórios gerais incluem todos os registros recebidos e mantêm tabelas pagináveis', () => {
+  reports.printOpenOccurrencesReport(Array.from({ length: 35 }, (_, index) => ({ ...occurrence, id: `OCC-${index}`, protocol: `HOP-${2000 + index}` })));
+  assert.match(printedHtml, /section\{break-inside:auto\}/);
+  assert.match(printedHtml, /thead\{display:table-header-group\}/);
+  assert.match(printedHtml, /HOP-2034/);
+
+  reports.printOperatorsReport([
+    { id: 'TEC-001', name: 'Ana Ribeiro', status: 'disponível', region: 'Centro' },
+    { id: 'TEC-002', name: 'Bruno Martins', status: 'em atendimento', region: 'Sul' },
+  ], [occurrence], [{ technicianId: 'TEC-001', type: 'start', at: '2026-10-04T10:00:00Z' }]);
+  assert.match(printedHtml, /Total de operadores/);
+  assert.match(printedHtml, /Ana Ribeiro/);
+  assert.match(printedHtml, /Bruno Martins/);
+  assert.match(printedHtml, /Registros de ponto/);
+
+  reports.printElevatorsReport([
+    { id: 'ELV-001', identification: 'Torre A', status: 'parado', maintenanceHistory: [occurrence], activeOccurrence: occurrence },
+    { id: 'ELV-002', identification: 'Torre B', status: 'operando', maintenanceHistory: [] },
+  ], [{ elevatorId: 'ELV-002', date: '2099-01-01' }]);
+  assert.match(printedHtml, /Torre A/);
+  assert.match(printedHtml, /Torre B/);
+  assert.match(printedHtml, /Status operacional/);
+  assert.match(printedHtml, /Ocorrência ativa/);
+});
+
+test('análises só imprimem dados do período fornecido e representam os gráficos', () => {
+  printedHtml = '';
+  const empty = { period: '7', start: '2026-10-01', end: '2026-10-07', opened: [], concluded: [], active: [], mttr: null, durations: [], recurrent: [], pendingParts: [], slaRisk: [], severity: [], stages: [], failures: [], places: [], days: [] };
+  assert.equal(reports.printAnalyticsReport(empty), false);
+  assert.equal(printedHtml, '');
+  assert.equal(reports.printAnalyticsReport({ ...empty, opened: [occurrence], severity: [{ label: 'alta', value: 1 }], days: [{ label: '04/10', value: 1 }] }), true);
+  assert.match(printedHtml, /01\/10\/2026 a 07\/10\/2026/);
+  assert.match(printedHtml, /Prioridade das ocorrências/);
+  assert.match(printedHtml, /Evolução de chamados/);
+  assert.match(printedHtml, /report-chart-fill/);
+});
+
 test.after(async () => { await server.close(); delete globalThis.window; });

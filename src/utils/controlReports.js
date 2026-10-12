@@ -4,7 +4,7 @@ import { getSlaStatus } from './slaCalculator.js';
 import { preventiveStatus } from './preventivePlanning.js';
 import { DEFAULT_SHIFT_PLAN, deriveShift, formatMinutes, getShiftDays, SHIFT_STATUS } from './shiftSchedule.js';
 import { displayStatus } from './presentation.js';
-import { printReport, reportDate, reportDateTime, reportFacts, reportSection, reportTable } from './reportPrint.js';
+import { escapeReportHtml, printReport, reportDate, reportDateTime, reportFacts, reportSection, reportTable } from './reportPrint.js';
 import { getRequestedParts } from './partRequestReport.js';
 import { isTeamMember, normalizeOccurrenceTeam, teamCompactLabel, teamRoleLabel, wasTeamMember } from './occurrenceTeam.js';
 
@@ -51,6 +51,55 @@ export function printOpenOccurrencesReport(occurrences) {
     return [item.protocol, displayStatus(item.priority?.classification), displayStatus(item.operationalStatus), list([item.client?.name, item.address || item.client?.address]), item.elevator?.identification, technicianName(item), sla ? `${sla.label} · ${sla.detail}` : '', list([partDescription(item.partRequest), item.partRequest?.state, item.supportRequest?.reason, item.supportRequest?.state]), item.workflowHistory?.at(-1)?.label || displayStatus(item.operationalStatus)];
   })) || '<p class="report-empty">Não há ocorrências em aberto.</p>');
   printReport({ title, content, landscape: true });
+}
+
+export function printOperatorsReport(technicians, occurrences, shiftEvents = [], shiftPlan) {
+  const title = 'Relatório de operadores';
+  const available = technicians.filter((item) => item.status === 'disponível').length;
+  const occupied = technicians.filter((item) => ['em atendimento', 'em deslocamento'].includes(item.status)).length;
+  const summary = reportSection('Resumo da equipe', reportFacts([['Total de operadores', technicians.length], ['Disponíveis', available], ['Ocupados ou em deslocamento', occupied], ['Indisponíveis', technicians.length - available - occupied]]));
+  const rows = technicians.map((technician) => {
+    const records = occurrences.filter((item) => wasTeamMember(item, technician.id) || item.workflowHistory?.some((event) => event.technicianId === technician.id));
+    return [technician.name, technician.id, technician.region, technician.specialty, technician.phone || technician.email, displayStatus(technician.status), technician.currentOccurrence?.protocol, records.length, records.filter((item) => isTeamMember(item, technician.id) && item.operationalStatus === OPERATION_STATUS.RESOLVED).length];
+  });
+  const schedule = shiftPlan && technicians.some((item) => item.id === 'TEC-010') ? reportSection('Horário previsto registrado', reportFacts([['Operador', technicians.find((item) => item.id === 'TEC-010')?.name], ['Início', shiftPlan.start], ['Almoço', `${shiftPlan.lunchStart}–${shiftPlan.lunchEnd}`], ['Fim', shiftPlan.end]])) : '';
+  const shifts = shiftEvents.filter((event) => technicians.some((item) => item.id === event.technicianId));
+  const shiftRows = technicians.flatMap((technician) => getShiftDays(shifts, technician.id).map((day) => {
+    const derived = deriveShift(day.events);
+    return [technician.name, reportDate(day.day), SHIFT_STATUS[derived.status], reportDateTime(derived.records.start), reportDateTime(derived.records.lunchStart), reportDateTime(derived.records.lunchEnd), reportDateTime(derived.records.end)];
+  }));
+  const content = summary + reportSection('Operadores', reportTable(['Nome', 'Código', 'Região', 'Especialidade', 'Contato', 'Status', 'Ocorrência atual', 'Atendidos', 'Concluídos'], rows) || '<p class="report-empty">Nenhum operador registrado.</p>') + schedule + reportSection('Registros de ponto', reportTable(['Operador', 'Data', 'Situação', 'Início', 'Saída almoço', 'Retorno', 'Fim'], shiftRows) || '<p class="report-empty">Nenhum registro de ponto disponível.</p>');
+  printReport({ title, content, landscape: true });
+}
+
+export function printElevatorsReport(elevators, plans = []) {
+  const title = 'Relatório de elevadores';
+  const statuses = ['operando', 'atenção', 'em atendimento', 'parado'];
+  const summary = reportSection('Resumo da operação', reportFacts([['Total de elevadores', elevators.length], ...statuses.map((status) => [displayStatus(status), elevators.filter((item) => item.status === status).length]), ['Com ocorrência ativa', elevators.filter((item) => item.activeOccurrence).length]]));
+  const rows = elevators.map((elevator) => {
+    const related = elevator.maintenanceHistory || [];
+    const open = related.filter((item) => item.operationalStatus !== OPERATION_STATUS.RESOLVED);
+    const scheduled = plans.filter((plan) => plan.elevatorId === elevator.id && plan.date && ['Agendada', 'Próxima', 'Atrasada'].includes(preventiveStatus(plan, related))).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const recentMaintenance = related.find((item) => item.operationalStatus === OPERATION_STATUS.RESOLVED);
+    return [elevator.identification || elevator.id, elevator.id, elevator.client?.name, elevator.address || elevator.client?.address, elevator.model, displayStatus(elevator.status), elevator.activeOccurrence ? 'Sim' : 'Não', open.length, reportDate(elevator.lastMaintenance || recentMaintenance?.completedAt), scheduled ? reportDate(scheduled.date) : '', recentMaintenance ? `${recentMaintenance.protocol || recentMaintenance.id}: ${recentMaintenance.description || ''}` : ''];
+  });
+  printReport({ title, content: summary + reportSection('Relação completa', reportTable(['Elevador', 'Código', 'Cliente', 'Localização', 'Modelo', 'Status operacional', 'Ocorrência ativa', 'Em aberto', 'Última manutenção', 'Próxima preventiva', 'Histórico recente'], rows) || '<p class="report-empty">Nenhum elevador registrado.</p>'), landscape: true });
+}
+
+const reportBars = (items) => {
+  const max = Math.max(1, ...items.map((item) => item.value));
+  return `<div class="report-chart">${items.map((item) => `<div class="report-chart-row"><span>${escapeReportHtml(item.label)}</span><span class="report-chart-track"><span class="report-chart-fill" style="width:${Math.max(0, Math.min(100, item.value / max * 100))}%"></span></span><span class="report-chart-value">${escapeReportHtml(item.value)}</span></div>`).join('')}</div>`;
+};
+
+export function printAnalyticsReport(data) {
+  const { period, start, end, opened, concluded, active, mttr, durations, recurrent, pendingParts, slaRisk, severity, stages, failures, places, days } = data;
+  if (!opened.length && !concluded.length) return false;
+  const title = 'Relatório de análises';
+  const summary = reportSection('Indicadores do período', reportFacts([['Período', `${reportDate(start)} a ${reportDate(end)}`], ['Chamados abertos', opened.length], ['Ocorrências ativas', active.length], ['Concluídas', concluded.length], ['Tempo médio (MTTR)', mttr == null ? 'Sem dados' : formatMinutes(mttr)], ['Conclusões com duração válida', durations.length], ['Reincidências', recurrent.length], ['Peças pendentes', pendingParts.length], ['SLA em risco', slaRisk.length]]));
+  const charts = [['Prioridade das ocorrências', severity], ['Etapas dos atendimentos', stages], ['Tipos de falha', failures], ['Locais com mais ocorrências', places], [`Evolução de chamados · últimos ${period} dias`, days]];
+  const content = summary + charts.map(([heading, items]) => reportSection(heading, reportBars(items))).join('');
+  printReport({ title, content });
+  return true;
 }
 
 export function printPreventivesReport(plans, occurrences) {
