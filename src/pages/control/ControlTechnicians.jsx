@@ -3,6 +3,7 @@ import ProfileAvatar from '../../components/ProfileAvatar';
 import StatusBadge from '../../components/StatusBadge';
 import { displayStatus, statusToneClass } from '../../utils/presentation';
 import HopFilterBar from '../../components/HopFilterBar';
+import { printOperatorsReport } from '../../utils/controlReports';
 
 const filters = [
   ['all', 'Todos'],
@@ -12,7 +13,7 @@ const filters = [
   ['indisponível', 'Indisponíveis'],
 ];
 
-export default function ControlTechnicians({ technicians, onSelectTechnician }) {
+export default function ControlTechnicians({ technicians, occurrences = [], shiftEvents = [], shiftPlan, onSelectTechnician }) {
   const [filter, setFilter] = useState('all');
   const available = technicians.filter((t) => t.status === 'disponível').length;
   const sortedTechnicians = [...technicians].sort((a, b) => {
@@ -31,7 +32,7 @@ export default function ControlTechnicians({ technicians, onSelectTechnician }) 
           <p className="page-header__subtitle">Operação de campo</p>
           <h1 className="page-header__title">Equipe de Campo</h1>
         </div>
-        <span className="hop-badge px-3 py-2">{available} disponíveis</span>
+        <div className="d-flex align-items-center gap-2 flex-wrap"><span className="hop-badge px-3 py-2">{available} disponíveis</span><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOperatorsReport(technicians, occurrences, shiftEvents, shiftPlan)}>Imprimir relatório de operadores</button></div>
       </header>
 
       <HopFilterBar label="Filtrar técnicos por status" quick={filters} active={filter} onQuickChange={setFilter} count={filtered.length} total={technicians.length} hasFilters={filter !== 'all'} onClear={() => setFilter('all')} />
