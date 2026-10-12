@@ -618,7 +618,7 @@
 /* Technician content within the shared elevator card structure. */
 .control-technician-card__avatar { width: 42px; height: 42px; flex-basis: 42px; }
 .control-technician-card__name { text-transform: none; }
-.control-technician-card__specialty { display: -webkit-box; max-height: 2.5em; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.control-technician-card__specialty { display: -webkit-box; max-height: 2.5em; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
 .control-technician-card__footer-action { margin-left: auto; color: var(--color-primary-action); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
 
 /* Ficha Operacional de Elevador */
