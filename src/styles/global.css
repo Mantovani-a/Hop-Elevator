@@ -250,3 +250,15 @@ textarea.form-control {
 :root[data-theme="dark"] .form-control::placeholder {
   color: var(--color-text-muted);
 }
+
+/* Oculta qualquer elemento da Vercel Toolbar */
+vercel-toolbar,
+[data-vercel-toolbar],
+#vercel-toolbar,
+.__vercel-toolbar,
+vercel-live-feedback {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
