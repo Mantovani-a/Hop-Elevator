@@ -11,12 +11,12 @@ export default function SyncStatusBadge({ className = '' }) {
   if (!status.configured) {
     return (
       <span
-        className={`badge rounded-pill bg-secondary-subtle text-secondary border ${className}`}
+        className={`badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle ${className}`}
         style={{ fontSize: '0.75rem', fontWeight: 500 }}
-        title="Firebase não configurado. As alterações são sincronizadas apenas neste mesmo computador."
+        title="Ambiente demonstrativo isolado. O estado opera em modo sandbox no seu navegador sem interferir na apresentação oficial."
       >
-        <span className="me-1" aria-hidden="true">⚪</span>
-        Sincronização: Modo Local
+        <span className="me-1" aria-hidden="true">🔹</span>
+        Demonstração: Modo Sandbox
       </span>
     );
   }

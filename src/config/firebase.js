@@ -13,11 +13,9 @@ const firebaseConfig = {
   appId: getEnv(import.meta.env?.VITE_FIREBASE_APP_ID, typeof process !== 'undefined' ? process.env?.VITE_FIREBASE_APP_ID : ''),
 };
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey &&
-  firebaseConfig.databaseURL &&
-  firebaseConfig.projectId
-);
+// Nesta branch de demonstração para portfólio, forçamos o isolamento total (modo sandbox local)
+// para garantir que acessos externos nunca interfiram na apresentação ao vivo.
+export const isFirebaseConfigured = false;
 
 let app = null;
 let database = null;
@@ -31,7 +29,7 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
     database = null;
   }
 } else if (typeof window !== 'undefined') {
-  console.info('HOP: Firebase não configurado. Operando em modo local resiliente.');
+  console.info('HOP: Ambiente demonstrativo de portfólio ativo. Operando em modo sandbox local 100% isolado.');
 }
 
 export { app, database };
