@@ -404,7 +404,14 @@ export default function OperatorPage({ route = '/operator' }) {
         onAccept={handleAcceptAlert}
         onView={handleViewAlert}
       />
-      {shiftTransition === 'ending' && <div className="operator-shift-transition" role="status">Encerrando turno…</div>}
+      {shiftTransition === 'ending' && (
+        <div className="operator-shift-transition" role="status" aria-live="polite">
+          <div className="operator-shift-transition__card">
+            <span className="operator-shift-spinner" aria-hidden="true" />
+            <span>Encerrando turno e sincronizando com a central…</span>
+          </div>
+        </div>
+      )}
       <Modal isOpen={shiftPanelOpen} onClose={() => setShiftPanelOpen(false)} title="Meu turno" titleId="operator-shift-title" className="operator-shift-modal" layerClassName="operator-end-shift-layer" showHeader={false}>
         <button type="button" className="operator-shift-modal__close" aria-label="Fechar meu turno" onClick={() => setShiftPanelOpen(false)}>×</button>
         <OperatorShiftPanel events={todayEvents} plan={operationState.operatorShiftPlan} onAction={handleShiftAction} onSavePlan={updateOperatorShiftPlan} busy={Boolean(shiftTransition)} />
