@@ -4,6 +4,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { displayStatus, statusToneClass } from '../../utils/presentation';
 import HopFilterBar from '../../components/HopFilterBar';
 import { printOperatorsReport } from '../../utils/controlReports';
+import PrintButton from '../../components/PrintButton';
 
 const filters = [
   ['all', 'Todos'],
@@ -32,7 +33,7 @@ export default function ControlTechnicians({ technicians, occurrences = [], shif
           <p className="page-header__subtitle">Operação de campo</p>
           <h1 className="page-header__title">Equipe de Campo</h1>
         </div>
-        <div className="d-flex align-items-center gap-2 flex-wrap"><span className="hop-badge px-3 py-2">{available} disponíveis</span><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOperatorsReport(technicians, occurrences, shiftEvents, shiftPlan)}>Imprimir relatório de operadores</button></div>
+        <div className="d-flex align-items-center gap-2 flex-wrap"><span className="hop-badge px-3 py-2">{available} disponíveis</span><PrintButton onClick={() => printOperatorsReport(technicians, occurrences, shiftEvents, shiftPlan)} label="Imprimir relatório de operadores" /></div>
       </header>
 
       <HopFilterBar label="Filtrar técnicos por status" quick={filters} active={filter} onQuickChange={setFilter} count={filtered.length} total={technicians.length} hasFilters={filter !== 'all'} onClear={() => setFilter('all')} />

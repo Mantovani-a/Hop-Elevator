@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { translateMeshName, buildDisplayNameMap } from '../utils/modelNameTranslator';
-import defaultModelUrl from '../assets/models/HOPElevador.glb?url';
+
+const defaultModelUrl = `${import.meta.env.BASE_URL}models/HOPElevador.glb`;
+const DEFAULT_MODEL_NAME = 'HOPElevador.glb (Padrão)';
 
 const DB_NAME = 'hop-elevator-models';
 const DB_VERSION = 1;
@@ -174,6 +176,7 @@ const ElevatorModelContext = createContext(null);
 const fallbackContext = {
   elevatorId: null,
   modelUrl: null,
+  isDefaultModel: false,
   modelFormat: null,
   modelFileName: null,
   parts: [],
@@ -194,9 +197,9 @@ export function useElevatorModel() {
 }
 
 export function ElevatorModelScope({ elevatorId, children }) {
-  const [modelUrl, setModelUrl] = useState(null);
-  const [modelFormat, setModelFormat] = useState(null);
-  const [modelFileName, setModelFileName] = useState(null);
+  const [modelUrl, setModelUrl] = useState(defaultModelUrl);
+  const [modelFormat, setModelFormat] = useState('glb');
+  const [modelFileName, setModelFileName] = useState(DEFAULT_MODEL_NAME);
   const [parts, setParts] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -247,17 +250,25 @@ export function ElevatorModelScope({ elevatorId, children }) {
         currentRecordRef.current = saved;
         setModelUrl(defaultModelUrl);
         setModelFormat('glb');
-        setModelFileName(saved.fileName || 'HOPElevador.glb (Padrão)');
+        setModelFileName(saved.fileName || DEFAULT_MODEL_NAME);
         setParts(Array.isArray(saved.parts) ? saved.parts : []);
       } else {
         currentRecordRef.current = null;
-        setModelUrl(null);
-        setModelFormat(null);
-        setModelFileName(null);
+        setModelUrl(defaultModelUrl);
+        setModelFormat('glb');
+        setModelFileName(DEFAULT_MODEL_NAME);
         setParts([]);
       }
     } catch (err) {
-      if (String(activeElevatorIdRef.current) === String(targetId)) console.warn('Erro ao carregar modelo do elevador:', err);
+      if (String(activeElevatorIdRef.current) === String(targetId)) {
+        cleanupUrl();
+        currentRecordRef.current = null;
+        setModelUrl(defaultModelUrl);
+        setModelFormat('glb');
+        setModelFileName(DEFAULT_MODEL_NAME);
+        setParts([]);
+        console.warn('Erro ao carregar modelo específico do elevador:', err);
+      }
     } finally {
       if (String(activeElevatorIdRef.current) === String(targetId)) setRestoredFromDB(true);
     }
@@ -337,9 +348,9 @@ export function ElevatorModelScope({ elevatorId, children }) {
   const removeModel = useCallback(async () => {
     if (!elevatorId) return;
     cleanupUrl();
-    setModelUrl(null);
-    setModelFormat(null);
-    setModelFileName(null);
+    setModelUrl(defaultModelUrl);
+    setModelFormat('glb');
+    setModelFileName(DEFAULT_MODEL_NAME);
     setParts([]);
     setError(null);
     currentRecordRef.current = null;
@@ -351,19 +362,19 @@ export function ElevatorModelScope({ elevatorId, children }) {
     if (!elevatorId) return;
     setIsProcessing(true);
     setError(null);
+    const record = { source: 'builtin', fileName: DEFAULT_MODEL_NAME, format: 'glb', parts: [] };
+    cleanupUrl();
+    currentRecordRef.current = record;
+    setModelUrl(defaultModelUrl);
+    setModelFormat('glb');
+    setModelFileName(DEFAULT_MODEL_NAME);
+    setParts([]);
     try {
-      const record = { source: 'builtin', fileName: 'HOPElevador.glb (Padrão)', format: 'glb', parts: [] };
       await saveModelToDB(elevatorId, record);
       if (String(activeElevatorIdRef.current) !== String(elevatorId)) return;
-      cleanupUrl();
-      currentRecordRef.current = record;
-      setModelUrl(defaultModelUrl);
-      setModelFormat('glb');
-      setModelFileName(record.fileName);
-      setParts([]);
       notifyChange(elevatorId);
     } catch (err) {
-      setError(err.message || 'Não foi possível vincular o modelo padrão.');
+      setError('Modelo padrão carregado, mas não foi possível salvar essa preferência.');
     } finally {
       setIsProcessing(false);
     }
@@ -386,6 +397,7 @@ export function ElevatorModelScope({ elevatorId, children }) {
   const value = useMemo(() => ({
     elevatorId,
     modelUrl,
+    isDefaultModel: modelUrl === defaultModelUrl,
     modelFormat,
     modelFileName,
     parts,

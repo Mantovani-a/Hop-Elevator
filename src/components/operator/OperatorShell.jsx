@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import DemoHomeLink from '../DemoHomeLink';
+import SettingsButton from '../SettingsButton';
 import ModuleSidebar from '../ModuleSidebar';
-import ThemeToggle from '../ThemeToggle';
 import NotificationCenter from '../NotificationCenter';
 
 const navigationItems = [
@@ -32,10 +31,9 @@ export default function OperatorShell({ route, technician, onOpenShift, shiftSta
           <div className="module-utility-bar__title d-none d-sm-flex"><strong>HOP Operator</strong><span>Operação em campo</span></div>
           <div className="module-utility-bar__actions">
             <button className="btn btn-sm btn-outline-primary" type="button" onClick={onSimulate}>Simular nova ocorrência</button>
-            <NotificationCenter module="operator" recipientId={technician.id} />
-            <DemoHomeLink />
-            <ThemeToggle compact />
             <button className="btn btn-sm btn-outline-primary operator-end-shift" type="button" onClick={onOpenShift}>Meu turno · {shiftStatus === 'break' ? 'Em intervalo' : 'Ativo'}</button>
+            <NotificationCenter module="operator" recipientId={technician.id} />
+            <SettingsButton />
           </div>
         </header>
         <main className="module-main operator-main">{children}</main>

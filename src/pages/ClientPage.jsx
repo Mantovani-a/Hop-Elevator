@@ -75,8 +75,10 @@ export default function ClientPage({ route = '/client' }) {
       addOperationOccurrence(call);
       setNewCallId(call.id);
       navigateTo(`/client/call/${call.id}`);
+      return true;
     } catch {
       setSubmitError(true);
+      return false;
     }
   };
 

@@ -11,6 +11,7 @@ import { compatibleParts, componentRecurrences } from '../../data/technicalIntel
 import useOperationState from '../../hooks/useOperationState';
 import { preventiveStatus } from '../../utils/preventivePlanning';
 import { printElevatorReport } from '../../utils/controlReports';
+import PrintButton from '../PrintButton';
 
 const getDiagnosis = (occurrence) =>
   occurrence.finalDiagnosis ||
@@ -54,8 +55,8 @@ function SummaryTabIcon() {
 }
 
 function ModelLinkStatus() {
-  const { modelUrl, restoredFromDB } = useElevatorModel();
-  return <p className="control-model-link-status">{!restoredFromDB ? 'Verificando associação do modelo…' : modelUrl ? 'Modelo 3D vinculado a este elevador' : 'Nenhum modelo 3D vinculado'}</p>;
+  const { modelUrl, isDefaultModel, restoredFromDB } = useElevatorModel();
+  return <p className="control-model-link-status">{!restoredFromDB ? 'Verificando associação do modelo…' : isDefaultModel ? 'Modelo 3D padrão disponível' : modelUrl ? 'Modelo 3D vinculado a este elevador' : 'Nenhum modelo 3D vinculado'}</p>;
 }
 
 export default function ControlElevatorDetailModal({
@@ -152,7 +153,7 @@ export default function ControlElevatorDetailModal({
         </div>
         <dl className="control-elevator-detail__header-meta"><div><dt>Modelo</dt><dd>{elevator.model || 'Não informado'}</dd></div><div><dt>Código</dt><dd>{elevator.id}</dd></div><div><dt>Tipo</dt><dd>{elevatorType || 'Elevador'}</dd></div><div><dt>Última manutenção</dt><dd>{elevator.lastMaintenance ? formatDate(elevator.lastMaintenance) : 'Não informada'}</dd></div></dl>
         <div className="control-elevator-detail__header-actions">
-          <button type="button" className="btn btn-sm btn-outline-primary control-elevator-print" onClick={() => printElevatorReport(elevator, elevatorType, operationState.preventives || [], operationState.occurrences || [])}>Imprimir histórico do elevador</button>
+          <PrintButton onClick={() => printElevatorReport(elevator, elevatorType, operationState.preventives || [], operationState.occurrences || [])} label="Imprimir histórico do elevador" />
           <button
             type="button"
             className="control-modal-close-btn"

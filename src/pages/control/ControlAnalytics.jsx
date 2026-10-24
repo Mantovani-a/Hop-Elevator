@@ -3,6 +3,7 @@ import { OPERATION_STATUS } from '../../data/operationStore';
 import { componentLabel } from '../../data/technicalIntelligence';
 import { getSlaStatus } from '../../utils/slaCalculator';
 import { printAnalyticsReport } from '../../utils/controlReports';
+import PrintButton from '../../components/PrintButton';
 
 function BarList({ items, empty = 'Sem registros no período.' }) {
   const max = Math.max(1, ...items.map((item) => item.value));
@@ -40,7 +41,7 @@ export default function ControlAnalytics({ occurrences }) {
     const prepared = printAnalyticsReport({ period, start: new Date(cutoff), end: now, opened, concluded, active, mttr, durations, recurrent, pendingParts, slaRisk, severity, stages, failures, places, days });
     setPrintMessage(prepared ? '' : 'Não há informações para o período selecionado.');
   };
-  return <div className="analytics-page"><header className="page-header"><div><p className="page-header__subtitle">Indicadores operacionais e desempenho da assistência técnica</p><h1 className="page-header__title">Análises</h1></div><div className="d-flex align-items-end gap-2 flex-wrap"><label className="analytics-period"><span>Período</span><select value={period} onChange={(event) => { setPeriod(event.target.value); setPrintMessage(''); }}><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label><button className="btn btn-sm btn-outline-primary" type="button" onClick={handlePrint}>Imprimir relatório de análises</button></div></header>{printMessage && <p role="status" className="analytics-empty">{printMessage}</p>}
+  return <div className="analytics-page"><header className="page-header"><div><p className="page-header__subtitle">Indicadores operacionais e desempenho da assistência técnica</p><h1 className="page-header__title">Análises</h1></div><div className="d-flex align-items-end gap-2 flex-wrap"><label className="analytics-period"><span>Período</span><select value={period} onChange={(event) => { setPeriod(event.target.value); setPrintMessage(''); }}><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label><PrintButton onClick={handlePrint} label="Imprimir relatório de análises" /></div></header>{printMessage && <p role="status" className="analytics-empty">{printMessage}</p>}
     <section className="analytics-kpis" aria-label="Indicadores do período">{[
       ['Ocorrências ativas', active.length, 'Abertas no período'],
       ['Concluídas', concluded.length, 'Finalizadas no período'],

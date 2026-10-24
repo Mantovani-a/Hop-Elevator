@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react';
-import DemoHomeLink from '../DemoHomeLink';
-import ThemeToggle from '../ThemeToggle';
+import SettingsButton from '../SettingsButton';
+import NotificationCenter from '../NotificationCenter';
+import HopLogo from '../HopLogo';
 import OperatorShiftLanding from './OperatorShiftLanding';
+import { subscribeSyncStatus } from '../../data/firebaseSync';
+
+function OperatorConnectionStatus() {
+  const [syncStatus, setSyncStatus] = useState({ configured: false, connected: false });
+
+  useEffect(() => subscribeSyncStatus(setSyncStatus), []);
+
+  const state = !syncStatus.configured ? 'local' : syncStatus.connected ? 'connected' : 'connecting';
+  const label = state === 'local' ? 'Modo Local' : state === 'connected' ? 'Central Conectada' : 'Conectando à central';
+
+  return <span className={`operator-shift-closed__sync is-${state}`} role="status"><span className="operator-shift-closed__sync-dot" aria-hidden="true" />{label}</span>;
+}
 
 function OperatorLiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -45,18 +58,16 @@ export default function OperatorShiftClosed({
     <div className="operator-shift-closed">
       <header className="operator-shift-closed__top-bar">
         <div className="operator-shift-closed__brand">
+          <HopLogo variant="operatorShift" size="shift-header" className="operator-shift-closed__logo" />
           <span className="operator-shift-closed__brand-name">HOP Operator</span>
           <span className="operator-shift-closed__brand-divider" aria-hidden="true">/</span>
           <span className="operator-shift-closed__brand-context">Estação de Ponto &amp; Prontidão</span>
         </div>
         <div className="operator-shift-closed__meta">
           <OperatorLiveClock />
-          <span className="operator-shift-closed__sync">
-            <span className="operator-shift-closed__sync-dot" aria-hidden="true" />
-            Central Conectada
-          </span>
-          <ThemeToggle compact />
-          <DemoHomeLink />
+          <OperatorConnectionStatus />
+          <NotificationCenter module="operator" recipientId={technician.id} />
+          <SettingsButton />
         </div>
       </header>
       <main className="operator-shift-closed__content">

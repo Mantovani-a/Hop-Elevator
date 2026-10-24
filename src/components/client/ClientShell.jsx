@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import DemoHomeLink from '../DemoHomeLink';
+import SettingsButton from '../SettingsButton';
 import ModuleSidebar from '../ModuleSidebar';
-import ThemeToggle from '../ThemeToggle';
 import NotificationCenter from '../NotificationCenter';
 
 const navItems = [
@@ -56,8 +55,7 @@ export default function ClientShell({ route, user, establishment, children }) {
           </div>
           <div className="module-utility-bar__actions">
             <NotificationCenter module="client" recipientId={user.clientId} />
-            <DemoHomeLink />
-            <ThemeToggle compact />
+            <SettingsButton />
           </div>
         </header>
         <main className="module-main client-main">

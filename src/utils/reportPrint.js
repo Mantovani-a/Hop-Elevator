@@ -1,5 +1,6 @@
-import hopLogo from '../assets/logos/hop-logo.png';
 import otisLogo from '../assets/logos/Otis-Logo.png';
+
+const hopLogo = `${import.meta.env.BASE_URL}hop-logo.png`;
 
 export const escapeReportHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 export const hasReportValue = (value) => value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);

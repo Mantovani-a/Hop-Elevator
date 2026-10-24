@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import HopLogo from '../components/HopLogo';
 import ThemeToggle from '../components/ThemeToggle';
+import FullscreenButton from '../components/FullscreenButton';
 import SyncStatusBadge from '../components/SyncStatusBadge';
 import { resetOperationState } from '../data/operationStore';
 
@@ -44,7 +45,7 @@ export default function HomePage() {
 
   return (
     <main className="home-selector">
-      <div className="home-selector__theme"><ThemeToggle /></div>
+      <div className="home-selector__theme"><FullscreenButton /><ThemeToggle /></div>
       <section className="container hop-container home-selector__content" aria-labelledby="experiences-title">
         <HopLogo size="home" />
         <div className="home-selector__heading">

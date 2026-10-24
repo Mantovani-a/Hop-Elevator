@@ -28,7 +28,7 @@ export default function ClientCallDetail({ call, newCallId, statusFor }) {
         <div className="client-success-banner mb-4" role="status">
           <span aria-hidden="true">✓</span>
           <div>
-            <strong>Ocorrência registrada com sucesso</strong>
+            <strong>Ocorrência {call.protocol} registrada com sucesso</strong>
             <p>As informações foram enviadas para a Central de Operações e a prioridade foi calculada.</p>
           </div>
         </div>

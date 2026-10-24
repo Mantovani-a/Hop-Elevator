@@ -2,6 +2,7 @@ import StatusBadge from '../StatusBadge';
 import Modal from '../Modal';
 import { formatDateTime } from '../../utils/presentation';
 import { printOccurrenceReport } from '../../utils/controlReports';
+import PrintButton from '../PrintButton';
 
 const asText = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean).join(' · ');
@@ -43,11 +44,12 @@ export default function ControlTechnicalReport({ occurrence, onClose }) {
     <Modal isOpen={Boolean(occurrence)} onClose={onClose} title="Relatório técnico final" titleId="control-report-title" showHeader={false} className="control-detail-panel control-report-panel" layerClassName="control-modal-layer control-detail-layer">
         <header>
           <div><p className="eyebrow eyebrow--dark">{occurrence.protocol}</p><h2 id="control-report-title">Relatório técnico final</h2></div>
-          <button type="button" onClick={onClose} aria-label="Fechar">×</button>
+          <div className="control-report-header-actions">
+            <PrintButton onClick={() => printOccurrenceReport(occurrence)} label="Imprimir relatório da ocorrência" />
+            <button type="button" onClick={onClose} aria-label="Fechar">×</button>
+          </div>
         </header>
         <div className="control-detail-panel__body">
-        <div className="control-report-print-action"><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOccurrenceReport(occurrence)}>Imprimir relatório da ocorrência</button></div>
-
         <div className="control-detail-panel__badges"><StatusBadge value="Concluída" />{occurrence.duration && <span className="control-report-panel__duration">Duração: {occurrence.duration}</span>}</div>
 
         <section>

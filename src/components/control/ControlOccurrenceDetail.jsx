@@ -7,6 +7,7 @@ import { OPERATION_STATUS } from '../../data/operationStore';
 import { componentLabel, compatibleParts, componentRecurrences } from '../../data/technicalIntelligence';
 import useOperationState from '../../hooks/useOperationState';
 import { printOccurrenceReport } from '../../utils/controlReports';
+import PrintButton from '../PrintButton';
 import { getTechnicianById } from '../../data/mockData.js';
 import { normalizeOccurrenceTeam, TEAM_MODE, teamRoleLabel } from '../../utils/occurrenceTeam.js';
 import { useEffect, useState } from 'react';
@@ -48,9 +49,8 @@ export default function ControlOccurrenceDetail({
 
   return (
     <Modal isOpen={Boolean(occurrence)} onClose={onClose} title="Detalhe da ocorrência" titleId="control-occurrence-title" showHeader={false} className="control-detail-panel" layerClassName="control-modal-layer control-detail-layer">
-        <header className="control-occurrence-head"><div><p className="eyebrow eyebrow--dark">{occurrence.protocol}</p><h2 id="control-occurrence-title">Detalhe da ocorrência</h2></div><div className="control-occurrence-head__badges"><span className="control-priority-unit"><StatusBadge value={occurrence.priority?.classification || 'baixa'} type="severity" /><strong>{occurrence.priority?.score ?? 0}/100</strong></span><StatusBadge value={occurrence.operationalStatus} />{sla && occurrence.serviceType !== 'preventive' && <span className={`hop-badge ${sla.isBreached ? 'hop-badge--critica' : sla.isNearBreach ? 'hop-badge--atencao' : 'hop-badge--baixa'}`} title={sla.detail}>{sla.shortStatus}</span>}</div><button type="button" onClick={onClose} aria-label="Fechar">×</button></header>
+        <header className="control-occurrence-head"><div><p className="eyebrow eyebrow--dark">{occurrence.protocol}</p><h2 id="control-occurrence-title">Detalhe da ocorrência</h2></div><div className="control-occurrence-head__badges"><span className="control-priority-unit"><StatusBadge value={occurrence.priority?.classification || 'baixa'} type="severity" /><strong>{occurrence.priority?.score ?? 0}/100</strong></span><StatusBadge value={occurrence.operationalStatus} />{sla && occurrence.serviceType !== 'preventive' && <span className={`hop-badge ${sla.isBreached ? 'hop-badge--critica' : sla.isNearBreach ? 'hop-badge--atencao' : 'hop-badge--baixa'}`} title={sla.detail}>{sla.shortStatus}</span>}</div><div className="control-report-header-actions"><PrintButton onClick={() => printOccurrenceReport(occurrence)} label="Imprimir relatório da ocorrência" /><button type="button" onClick={onClose} aria-label="Fechar">×</button></div></header>
         <div className="control-detail-panel__body">
-        <div className="control-report-print-action"><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOccurrenceReport(occurrence)}>Imprimir relatório da ocorrência</button></div>
         {recurrences.length > 0 && <section className="hop-component-alert"><h3>Reincidência por componente</h3>{recurrences.map((item) => <p key={item.componentId}><strong>{item.label}</strong> · {item.count} registros nos últimos 30 dias. Verifique causa raiz e histórico técnico.</p>)}</section>}
         <section className="control-occurrence-summary">
           <h3>Resumo da ocorrência</h3>

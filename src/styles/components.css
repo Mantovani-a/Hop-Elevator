@@ -1,3 +1,33 @@
+.hop-print-button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-primary-action);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-action);
+  background: var(--color-surface);
+  line-height: 1;
+}
+
+.hop-print-button.btn:hover {
+  color: var(--color-primary-action);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-action);
+}
+
+.hop-print-button.btn:focus-visible {
+  outline: 2px solid var(--color-primary-action);
+  outline-offset: 2px;
+}
+
+.hop-print-button.btn:active { transform: translateY(1px); }
+
 .hop-badge {
   display: inline-flex;
   width: fit-content;
@@ -510,7 +540,7 @@
   text-align: center;
 }
 
-/* Controles de tema e demonstração */
+/* Controles de tema e configurações */
 .module-demo-link,
 .theme-toggle {
   display: inline-flex;
@@ -535,17 +565,45 @@
   }
 }
 
-.module-demo-link__label {
-  display: none;
-
-  @media (min-width: 1280px) { display: inline; }
-}
+.module-demo-link--icon-only { width: 44px; padding: 0; }
 
 .theme-toggle--compact {
   width: 44px;
   padding: 0;
   font-size: 1rem;
 }
+
+.theme-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.hop-settings-modal { width: min(100%, 520px); }
+
+.hop-settings-modal__options { display: grid; gap: var(--space-3); margin-top: var(--space-4); }
+
+.hop-settings-modal__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hop-settings-modal__option:last-child { border-bottom: 0; }
+.hop-settings-modal__option > div,
+.hop-settings-modal__navigation > div { display: grid; gap: var(--space-1); }
+.hop-settings-modal__option strong { color: var(--color-text); }
+.hop-settings-modal__option small { color: var(--color-text-muted); }
+.hop-settings-modal__error { margin: 0; color: var(--color-severity-critical); font-size: 0.8rem; }
+
+.hop-settings-modal__navigation { display: grid; gap: var(--space-3); padding-top: var(--space-2); }
+.hop-settings-modal__navigation strong { color: var(--color-text); }
+.hop-settings-modal__navigation small { color: var(--color-text-muted); }
+.hop-settings-modal__navigation .theme-toggle { justify-self: start; max-width: 100%; text-align: center; }
 
 /* Logos */
 .hop-logo {
@@ -841,6 +899,8 @@
   z-index: 2;
   top: var(--space-4);
   right: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
 
   @media (max-width: 575.98px) {
     .theme-toggle span:last-child { display: none; }

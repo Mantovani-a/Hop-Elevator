@@ -7,6 +7,7 @@ import { displayStatus, statusToneClass } from '../../utils/presentation';
 import { navigateTo } from '../../utils/navigation';
 import HopFilterBar from '../../components/HopFilterBar';
 import { printElevatorsReport } from '../../utils/controlReports';
+import PrintButton from '../../components/PrintButton';
 
 const normalizeText = (value = '') =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -109,7 +110,7 @@ export default function ControlElevators({ elevators, plans = [], historyElevato
           <p className="page-header__subtitle">Parque monitorado</p>
           <h1 className="page-header__title">Elevadores</h1>
         </div>
-        <div className="d-flex align-items-center gap-2 flex-wrap"><span className="hop-badge px-3 py-2">{elevators.filter((item) => item.status === 'operando').length} Operando</span><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printElevatorsReport(elevators, plans)}>Imprimir relatório de elevadores</button></div>
+        <div className="d-flex align-items-center gap-2 flex-wrap"><span className="hop-badge px-3 py-2">{elevators.filter((item) => item.status === 'operando').length} Operando</span><PrintButton onClick={() => printElevatorsReport(elevators, plans)} label="Imprimir relatório de elevadores" /></div>
       </header>
 
       <HopFilterBar

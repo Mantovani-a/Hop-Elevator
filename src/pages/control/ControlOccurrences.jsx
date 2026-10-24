@@ -4,6 +4,7 @@ import { formatDateTime, formatElapsedMinutes } from '../../utils/presentation';
 import { OPERATION_STATUS } from '../../data/operationStore';
 import HopFilterBar from '../../components/HopFilterBar';
 import { printOpenOccurrencesReport } from '../../utils/controlReports';
+import PrintButton from '../../components/PrintButton';
 
 const filters = [
   ['all', 'Todas'], ['active', 'Ativas'], ['attending', 'Em atendimento'], ['waiting-part', 'Aguardando peça'], ['completed', 'Concluídas'], ['parts', 'Peças'], ['support', 'Suporte'], ['critical', 'Críticas'], ['unassigned', 'Sem técnico'], ['traveling', 'Em deslocamento'],
@@ -88,7 +89,7 @@ export default function ControlOccurrences({ occurrences, onSelectOccurrence, on
         </div>
         <div className="d-flex gap-3 align-items-center">
           <span className="hop-badge px-3 py-2">{active.length} ativas</span>
-          <button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printOpenOccurrencesReport(occurrences)}>Imprimir ocorrências em aberto</button>
+          <PrintButton onClick={() => printOpenOccurrencesReport(occurrences)} label="Imprimir ocorrências em aberto" />
         </div>
       </header>
 

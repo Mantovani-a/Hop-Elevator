@@ -4,6 +4,7 @@ import { elevators, getClientById, getElevatorById } from '../../data/mockData';
 import { preventiveStatus } from '../../utils/preventivePlanning';
 import HopFilterBar from '../../components/HopFilterBar';
 import { printPreventivesReport } from '../../utils/controlReports';
+import PrintButton from '../../components/PrintButton';
 
 const statusClass = { Atrasada: 'is-late', Próxima: 'is-soon', 'Em andamento': 'is-progress', Concluída: 'is-done' };
 
@@ -25,7 +26,7 @@ export default function ControlPreventives({ plans, occurrences }) {
     setForm({ elevatorId: '', date: '', window: '09:00–11:00', note: '' });
   };
   return <div className="hop-preventives">
-    <header className="page-header mb-4"><div><p className="page-header__subtitle">Cuidado programado dos equipamentos</p><h1 className="page-header__title">Manutenção preventiva</h1><p className="text-secondary mb-0">Planeje visitas por elevador e acompanhe a execução em campo.</p></div><button className="btn btn-sm btn-outline-primary" type="button" onClick={() => printPreventivesReport(plans, occurrences)}>Imprimir preventivas agendadas</button></header>
+    <header className="page-header mb-4"><div><p className="page-header__subtitle">Cuidado programado dos equipamentos</p><h1 className="page-header__title">Manutenção preventiva</h1><p className="text-secondary mb-0">Planeje visitas por elevador e acompanhe a execução em campo.</p></div><PrintButton onClick={() => printPreventivesReport(plans, occurrences)} label="Imprimir preventivas agendadas" /></header>
     <div className="hop-preventive-stats" aria-label="Resumo da agenda">
       {[['scheduled', 'Agendadas'], ['Atrasada', 'Atrasadas'], ['Em andamento', 'Em campo'], ['Concluída', 'Concluídas']].map(([key, label]) => <div className="app-card hop-preventive-stat" key={key}><span>{label}</span><strong>{key === 'scheduled' ? (counts.Agendada || 0) + (counts.Próxima || 0) : counts[key] || 0}</strong></div>)}
     </div>

@@ -15,6 +15,7 @@ export default function ModelUploadPanel() {
     isProcessing,
     error,
     modelFileName,
+    isDefaultModel,
     removeModel,
     loadDefaultModel,
     restoredFromDB,
@@ -113,17 +114,20 @@ export default function ModelUploadPanel() {
             </svg>
             Substituir
           </button>
-          <button
-            className="model-upload-status__btn model-upload-status__btn--remove"
-            type="button"
-            onClick={removeModel}
-            disabled={isProcessing}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M3 3l8 8M11 3L3 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-            Remover
-          </button>
+          {!isDefaultModel && <>
+            <button className="model-upload-status__btn model-upload-status__btn--replace" type="button" onClick={loadDefaultModel} disabled={isProcessing}>Usar padrão</button>
+            <button
+              className="model-upload-status__btn model-upload-status__btn--remove"
+              type="button"
+              onClick={removeModel}
+              disabled={isProcessing}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 3l8 8M11 3L3 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+              Remover
+            </button>
+          </>}
         </div>
       </div>
     );

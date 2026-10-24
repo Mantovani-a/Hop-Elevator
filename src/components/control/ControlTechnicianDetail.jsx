@@ -6,6 +6,7 @@ import { OPERATION_STATUS } from '../../data/operationStore';
 import { displayStatus, formatDateTime } from '../../utils/presentation';
 import ControlShiftRecords from './ControlShiftRecords';
 import { printTechnicianReport } from '../../utils/controlReports';
+import PrintButton from '../PrintButton';
 import { isTeamMember, teamRoleLabel, wasTeamMember } from '../../utils/occurrenceTeam.js';
 
 const tabs = [['summary', 'Resumo'], ['history', 'Histórico'], ['shifts', 'Turnos e ponto'], ['performance', 'Desempenho']];
@@ -47,7 +48,7 @@ export default function ControlTechnicianDetail({ technician, occurrences = [], 
         {lastConclusion && <div className="tech-detail-headmeta__item"><span>Última conclusão</span><strong>{formatDateTime(lastConclusion)}</strong></div>}
       </div>
       <div className="tech-detail-actions">
-        <button className="btn btn-sm btn-outline-primary tech-detail-print" type="button" onClick={() => printTechnicianReport(technician, occurrences, shiftEvents, shiftPlan)}>Imprimir relatório completo</button>
+        <PrintButton onClick={() => printTechnicianReport(technician, occurrences, shiftEvents, shiftPlan)} label="Imprimir relatório completo" />
         <button className="tech-detail-close" type="button" onClick={onClose} aria-label="Fechar perfil">×</button>
       </div>
     </header>

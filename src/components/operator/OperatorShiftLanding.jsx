@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ProfileAvatar from '../ProfileAvatar';
 import Modal from '../Modal';
 import OperatorShiftPanel from './OperatorShiftPanel';
+import { ModuleIcon } from '../ModuleSidebar';
 import { DEFAULT_SHIFT_PLAN, deriveShift, formatClock, SHIFT_STATUS } from '../../utils/shiftSchedule.js';
 
 const actionLabels = {
@@ -9,6 +10,12 @@ const actionLabels = {
   'lunch-start': 'Registrar saída para almoço',
   'lunch-end': 'Registrar retorno do almoço',
   end: 'Encerrar turno',
+};
+
+const plannedHours = (plan) => {
+  const minutes = (time) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  const total = minutes(plan.end) - minutes(plan.start) - minutes(plan.lunchEnd) + minutes(plan.lunchStart);
+  return `${Math.floor(total / 60)}h${total % 60 ? String(total % 60).padStart(2, '0') : ''} CLT`;
 };
 
 export default function OperatorShiftLanding({
@@ -34,7 +41,7 @@ export default function OperatorShiftLanding({
         {/* Painel Esquerdo: Identificação & Ponto Operacional */}
         <div className="operator-shift-panel operator-shift-panel--primary">
           <div className="operator-shift-panel__header">
-            <span className="operator-shift-badge-terminal">Terminal de Campo</span>
+            <span className="operator-shift-badge-terminal"><ModuleIcon name="location" size={17} />Terminal de Campo</span>
             <div
               className={`operator-shift-status-pill is-${shift.status}`}
               role="status"
@@ -106,20 +113,7 @@ export default function OperatorShiftLanding({
           </div>
 
           <div className="operator-shift-notice">
-            <svg
-              className="operator-shift-notice__icon"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+            <ModuleIcon name="info" size={20} />
             <span className="operator-shift-notice__text">
               {shift.status === 'active'
                 ? 'Turno ativo. Sua rota e chamados estão sincronizados com a central técnica.'
@@ -132,7 +126,7 @@ export default function OperatorShiftLanding({
         <div className="operator-shift-panel operator-shift-panel--schedule">
           <div className="operator-shift-panel__header">
             <span className="operator-shift-panel__title">Jornada Programada</span>
-            <span className="operator-shift-panel__tag">8h CLT</span>
+            <span className="operator-shift-panel__tag">{plannedHours(plan)}</span>
           </div>
 
           <div className="operator-shift-schedule-list">
