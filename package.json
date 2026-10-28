@@ -10,11 +10,9 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
-    "firebase": "^13.0.0",
     "leaflet": "^1.9.4",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "three": "^0.186.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",

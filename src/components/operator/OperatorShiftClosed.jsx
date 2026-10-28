@@ -3,7 +3,7 @@ import SettingsButton from '../SettingsButton';
 import NotificationCenter from '../NotificationCenter';
 import HopLogo from '../HopLogo';
 import OperatorShiftLanding from './OperatorShiftLanding';
-import { subscribeSyncStatus } from '../../data/firebaseSync';
+import { subscribeSyncStatus } from '../../data/realtimeSync';
 
 function OperatorConnectionStatus() {
   const [syncStatus, setSyncStatus] = useState({ configured: false, connected: false });

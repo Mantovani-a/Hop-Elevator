@@ -5,10 +5,10 @@ import { resolveAutomaticDispatch } from '../utils/dispatchRecommendation.js';
 import { publishOperationNotifications, resetNotifications } from './notificationStore.js';
 import { OPERATION_STATUS } from './operationStatus.js';
 import {
-  initFirebaseRealtimeSync,
+  initRealtimeSync,
   broadcastOperationState,
   resetRemoteOperationState,
-} from './firebaseSync.js';
+} from './realtimeSync.js';
 import { seedComponentFor } from './technicalIntelligence.js';
 import { DEFAULT_SHIFT_PLAN, deriveShift, validShiftPlan, localDay } from '../utils/shiftSchedule.js';
 import { normalizeOccurrenceTeam } from '../utils/occurrenceTeam.js';
@@ -292,7 +292,7 @@ const writeOperationState = (state, { force = false, skipBroadcast = false } = {
 };
 
 /**
- * Aplica atualizações recebidas da nuvem (Firebase Realtime Database)
+ * Aplica atualizações recebidas da sincronização em tempo real (BroadcastChannel)
  * mantendo estabilidade referencial e sem eco de eventos.
  *
  * @param {Object} remoteState
@@ -326,16 +326,12 @@ export const applyRemoteOperationState = (remoteState) => {
 
     window.dispatchEvent(new CustomEvent(OPERATION_UPDATED_EVENT));
   } catch (err) {
-    console.warn('HOP: Falha ao aplicar estado recebido do Firebase:', err);
+    console.warn('HOP: Falha ao aplicar sincronizacao entre abas:', err);
   }
 };
 
-// Inicializa a ponte do Firebase Realtime
-initFirebaseRealtimeSync({
+initRealtimeSync({
   onRemoteStateReceived: applyRemoteOperationState,
-  onInitialSeedNeeded: () => {
-    broadcastOperationState(readOperationState());
-  },
 });
 
 /**

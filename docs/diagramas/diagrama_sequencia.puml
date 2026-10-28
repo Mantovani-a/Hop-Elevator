@@ -1,0 +1,19 @@
+@startuml Diagrama_Sequencia_HOP
+autonumber
+actor Cliente as "Cliente / Passageiro"
+boundary UI_Client as "HOP Client"
+control Central as "HOP Control (Central)"
+entity Banco as "Banco Oracle"
+boundary UI_Operador as "HOP Operator (Técnico)"
+
+Cliente -> UI_Client: Abre chamado informando elevador e problema
+UI_Client -> Central: Envia ocorrência com indicador de criticidade
+Central -> Banco: INSERT INTO chamados_otis (status = 'ABERTO')
+Central -> Central: Avalia fila e identifica técnico mais próximo
+Central -> UI_Operador: Notifica ocorrência e encaminha rota
+UI_Operador -> UI_Operador: Visualiza esquema técnico 2D do elevador
+UI_Operador -> Central: Registra início do atendimento (EM_ANDAMENTO)
+UI_Operador -> Central: Finaliza reparo e anexa parecer técnico
+Central -> Banco: UPDATE chamados_otis SET status = 'CONCLUIDO'
+Central -> UI_Client: Notifica restabelecimento do elevador (ATIVO)
+@enduml

@@ -1,0 +1,45 @@
+@startuml Diagrama_Classes_HOP
+skinparam classAttributeIconSize 0
+
+class Elevador {
+    +String codigo
+    +String modelo
+    +String edificio
+    +String andarAtual
+    +String status
+    +atualizarStatus(novoStatus: String): void
+}
+
+class Chamado {
+    +int id
+    +String descricao
+    +String prioridade
+    +boolean passageirosPresos
+    +DateTime dataAbertura
+    +String status
+    +calcularPrioridade(): String
+    +encerrarChamado(): void
+}
+
+class Tecnico {
+    +int id
+    +String nome
+    +String especialidade
+    +String statusDisponibilidade
+    +String localizacaoAtual
+    +aceitarChamado(chamadoId: int): void
+    +concluirAtendimento(): void
+}
+
+class Cliente {
+    +int id
+    +String nomeResponsavel
+    +String edificio
+    +String contato
+    +abrirChamado(elevadorId: String, descricao: String): Chamado
+}
+
+Cliente "1" --> "0..*" Chamado : registra
+Chamado "0..*" --> "1" Elevador : refere-se a
+Tecnico "1" --> "0..*" Chamado : atende
+@enduml
