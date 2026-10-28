@@ -1,4 +1,5 @@
 import sys
+import os
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -59,18 +60,26 @@ class Chamado:
 
 
 class ConexaoOracle:
-    """Gerenciador de infraestrutura e conexão com Oracle."""
+    """Gerenciador de conexao com Oracle (padrao ensinado na aula da FIAP)."""
 
-    def __init__(self, user="rmXXXXXX", password="sua_senha", dsn="oracle.fiap.com.br:1521/ORCL"):
-        self.user = user
-        self.password = password
-        self.dsn = dsn
+    def __init__(self, user=None, password=None, host="oracle.fiap.com.br", port="1521", sid="ORCL"):
+        # Suporta tanto variaveis de ambiente quanto os parametros padrao da aula
+        self.user = user or os.getenv("FIAP_ORACLE_USER", "rmXXXXXX")
+        self.password = password or os.getenv("FIAP_ORACLE_PASSWORD", "sua_senha")
+        self.host = host
+        self.port = str(port)
+        self.sid = sid
 
     def conectar(self):
         if not ORACLE_DISPONIVEL:
             return None
         try:
-            return cx_Oracle.connect(user=self.user, password=self.password, dsn=self.dsn)
+            # makedsn identico a sintaxe ensinada na aula pelo professor
+            if hasattr(cx_Oracle, 'makedsn'):
+                dsn_str = cx_Oracle.makedsn(self.host, self.port, self.sid)
+            else:
+                dsn_str = f"{self.host}:{self.port}/{self.sid}"
+            return cx_Oracle.connect(user=self.user, password=self.password, dsn=dsn_str)
         except Exception as erro:
             print(f"\n[ERRO CIRCUNSTANCIAL] Falha na conexao Oracle: {erro}")
             return None
