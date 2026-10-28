@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useElevatorModel } from '../../context/ElevatorModelContext';
-import ModelUploadPanel from './ModelUploadPanel';
 import Elevator2DViewer from './Elevator2DViewer';
 
 /**
  * Visualizador técnico do elevador (Fase 7 - Esquema Vetorial e Regiões).
  */
-export default function ElevatorModelViewer({ diagnosis, severity, canManage = false }) {
-  const { modelUrl = null, dynamicRegions = [], displayNameMap = {}, restoredFromDB = true } = useElevatorModel() || {};
+export default function ElevatorModelViewer({ diagnosis, severity }) {
+  const { dynamicRegions = [], displayNameMap = {} } = useElevatorModel() || {};
   const suspectedRegions = diagnosis?.suspectedRegions || [];
   const initialRegion = suspectedRegions[0] || (dynamicRegions?.[0]?.id ?? '');
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);
@@ -24,12 +23,10 @@ export default function ElevatorModelViewer({ diagnosis, severity, canManage = f
             Esquema Técnico do Elevador
           </h2>
         </div>
-        {modelUrl && (
+        {suspectedRegions.length > 0 && (
           <span><i aria-hidden="true" /> Região suspeita pela triagem</span>
         )}
       </div>
-
-      {canManage && <ModelUploadPanel />}
 
       <div className="elevator-model-tabs" role="tablist" aria-label="Alternar visualização">
         <button

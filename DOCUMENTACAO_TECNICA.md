@@ -2,55 +2,69 @@
 
 ## 1. Visão geral
 
-O HOP é uma aplicação React de página única. `src/main.jsx` inicializa o React, importa Bootstrap e os estilos, e envolve a aplicação com `ThemeProvider`. `src/App.jsx` lê o fragmento da URL (`window.location.hash`) e escolhe Home, Control, Operator ou Client.
+O HOP é uma aplicação React de página única. `src/main.jsx` inicializa o React, importa Bootstrap e os estilos, e envolve a aplicação com `ThemeProvider`. `src/App.jsx` lê o fragmento da URL (`window.location.hash`) e escolhe Home, About (`/sobre`), Control, Operator ou Client.
 
-Os dois módulos são apresentações diferentes da mesma operação. A fonte compartilhada fica em `src/data/operationStore.js`; páginas obtêm um snapshot estável por `useOperationState` e gravam alterações pelas funções do store. Assim, o chamado inserido no Control é o mesmo objeto atribuído e concluído no Operator.
+Os três módulos operacionais são apresentações diferentes da mesma operação. A fonte compartilhada fica em `src/data/operationStore.js`; páginas obtêm um snapshot estável por `useOperationState` e gravam alterações pelas funções do store. Assim, o chamado inserido no Client ou no Control é o mesmo objeto atribuído e concluído no Operator.
 
 ## 2. Estrutura real
 
 ```text
+docs/diagramas/
+├── diagrama_classes.puml     # modelo de classes do domínio HOP
+└── diagrama_sequencia.puml   # fluxo temporal ponta a ponta
 public/assets/profiles/
-├── operators/          # fotos públicas dos técnicos
-├── leadership/         # fotos públicas das lideranças
-└── clients/            # fotos públicas dos responsáveis
+├── operators/                # fotos públicas dos técnicos
+├── leadership/               # fotos públicas das lideranças
+└── clients/                  # fotos públicas dos responsáveis
 src/
 ├── App.jsx
 ├── main.jsx
-├── assets/logos/
-│   ├── hop-logo.png
-│   ├── hop-control-logo.png
-│   ├── hop-operator-logo.png
-│   ├── hop-client-logo.png
-│   └── hop-operator-shift-logo.png  # opcional; versão clara para a tela de turno
+├── assets/logos/             # logos oficiais dos módulos e apresentação
 ├── components/
-│   ├── control/         # shell, mapa, detalhes e reatribuição do Control
-│   ├── operator/        # shell, fila, rota, diagnóstico e modelo 2D
-│   └── componentes compartilhados (sidebar, retorno à Home, logo, mapa, badge, tema, métricas e feedback)
+│   ├── client/               # shell, cards, timeline e fluxo de suporte do Client
+│   ├── control/              # shell, mapa, detalhes, equipes, peças e relatórios do Control
+│   ├── elevator/             # visualizador esquemático 2D e inspeção de regiões (compartilhado)
+│   ├── operator/             # shell, fila, rota, turno, conclusão e diagnóstico do Operator
+│   └── componentes compartilhados (sidebar, logo, mapa, badge, tema, notificações e modais)
 ├── context/
-│   └── ThemeContext.jsx
+│   ├── ThemeContext.jsx
+│   └── ElevatorModelContext.jsx
 ├── data/
 │   ├── mockData.js
-│   ├── operationStore.js
-│   ├── operatorData.js e controlData.js
+│   ├── operationStore.js, operationStatus.js e realtimeSync.js
+│   ├── notificationStore.js
+│   ├── operatorData.js, controlData.js e clientData.js
+│   ├── elevatorRegions.js e technicalIntelligence.js
 │   └── geoCoordinates.js
 ├── hooks/
 │   ├── useOperationState.js
-│   └── useDialogFocus.js
+│   ├── useDialogFocus.js
+│   └── useFullscreen.js
 ├── pages/
-│   ├── HomePage.jsx, ControlPage.jsx e OperatorPage.jsx
-│   ├── control/         # visões internas do Control
-│   └── operator/        # visões internas do Operator
+│   ├── HomePage.jsx, AboutPage.jsx, ClientPage.jsx, ControlPage.jsx e OperatorPage.jsx
+│   ├── client/               # visões internas do Client
+│   ├── control/              # visões internas do Control
+│   └── operator/             # visões internas do Operator
 ├── styles/
-│   ├── tokens.css          # tokens claros/escuros, inclusive do mapa
-│   ├── global.css          # base, tipografia, formulários e acessibilidade
-│   ├── components.css      # cards, badges, shells e cabeçalhos compartilhados
-│   ├── control.css, operator.css e client.css
-│   └── map.css             # desenho e interação visual do mapa
+│   ├── tokens.css            # tokens claros/escuros, inclusive do mapa
+│   ├── global.css            # base, tipografia, formulários e acessibilidade
+│   ├── components.css        # cards, badges, shells e cabeçalhos compartilhados
+│   ├── control.css, operator.css, client.css e about.css
+│   └── map.css               # desenho e interação visual do mapa
 └── utils/
     ├── priorityScore.js
     ├── dispatchRecommendation.js
+    ├── occurrenceTeam.js
+    ├── shiftSchedule.js
     ├── operatorWorkflow.js
+    ├── clientSupport.js
+    ├── controlReports.js, partRequestReport.js e reportPrint.js
     └── presentation.js
+tests/
+├── controlReports.test.mjs
+├── occurrenceTeam.test.mjs
+├── partRequestReport.test.mjs
+└── shiftSchedule.test.mjs
 ```
 
 ## 3. Arquivos importantes
@@ -60,14 +74,15 @@ src/
 | `src/main.jsx` | Inicialização, providers e CSS global | adicionar provider ou folha global |
 | `src/App.jsx` | Seleção do módulo pela hash | adicionar módulo/rota raiz |
 | `src/data/operationStore.js` | estado único, status, persistência e reset | mudar o contrato compartilhado |
+| `src/data/realtimeSync.js` | sincronização instantânea entre abas via `BroadcastChannel` | alterar estratégia de sincronia em tempo real |
 | `src/hooks/useOperationState.js` | assinatura React do store | alterar a estratégia de leitura |
 | `src/data/mockData.js` | técnicos, clientes, elevadores e ocorrências base | manter dados demonstrativos |
 | `src/utils/priorityScore.js` | pontuação e classificação | revisar pesos de prioridade |
-| `src/utils/dispatchRecommendation.js` | recomendação de técnico | revisar despacho demonstrativo |
+| `src/utils/dispatchRecommendation.js` | recomendação de técnico e sugestão de equipe | revisar despacho demonstrativo |
 | `src/components/LeafletMap.jsx` | mapa operacional em tempo real com OpenStreetMap | alterar renderização e interação do mapa |
 | `src/components/ModuleSidebar.jsx` | estrutura lateral comum aos três módulos | alterar logo, perfil ou comportamento base dos menus |
 | `src/components/ProfileAvatar.jsx` | foto pública com fallback para iniciais | alterar renderização, acessibilidade ou tamanhos dos avatares |
-| `src/components/DemoHomeLink.jsx` | retorno acessível ao painel demonstrativo | alterar a ação global de retorno |
+| `src/components/elevator/ElevatorModelViewer.jsx` | esquema técnico 2D e inspeção de regiões | alterar representação técnica do elevador |
 | `src/data/geoCoordinates.js` | coordenadas geográficas de SP e traçado de rotas | atualizar posições de clientes e técnicos |
 | `src/context/ThemeContext.jsx` | tema, sistema e persistência | alterar estratégia de tema |
 | `src/styles/tokens.css` | design tokens claros/escuros | alterar identidade visual |
@@ -80,12 +95,14 @@ O projeto usa hash routing nativo; não há React Router. `App.jsx` escolhe o m�
 ### Gerais
 
 - `#/` — seleção das experiências;
+- `#/sobre` — apresentação institucional e técnica da solução;
+- `#/client` — HOP Client;
 - `#/control` — HOP Control;
 - `#/operator` — HOP Operator.
 
 ### Control
 
-- `#/control/occurrences`, `/technicians`, `/elevators`, `/analytics`.
+- `#/control/occurrences`, `/technicians`, `/elevators`, `/preventives`, `/analytics`.
 
 ### Operator
 
@@ -103,52 +120,43 @@ Para criar uma página interna, crie o componente, importe-o na página raiz do 
 
 ## 5. Componentes e layouts
 
-- `HopLogo` centraliza as logos oficiais, aceita `variant`, `size` e `className` e resolve a logo especial opcional do turno.
+- `HopLogo` centraliza as logos oficiais, aceita `variant`, `size` e `className` e resolve a logo especial do turno.
 - `ThemeToggle`, `StatusBadge`, `MetricCard` e `FeedbackMessage` são compartilháveis.
-- `ModuleSidebar` contém a estrutura visual compartilhada; `ControlShell` e `OperatorShell` configuram itens, perfil e cabeçalho de cada módulo.
-- `DemoHomeLink` mantém o retorno ao painel demonstrativo acessível nos três cabeçalhos.
+- `ModuleSidebar` contém a estrutura visual compartilhada; `ClientShell`, `ControlShell` e `OperatorShell` configuram itens, perfil e cabeçalho de cada módulo.
 - `ControlOperationsMap` monta marcadores com geolocalização e entrega-os ao `LeafletMap`.
 - `RouteMap` usa o mesmo `LeafletMap` e as coordenadas de `geoCoordinates.js` para traçar a rota do Operator.
-- `Elevator2DModel` expõe máquina de tração, polias, cintas/cabos, governador, quadro, trilhos, contrapeso, cabine, operador/portas, sensores, fins de curso, amortecedores e poço.
-- `OperatorShiftClosed` apresenta logo, estado encerrado e início de turno quando a operação de João Carlos está encerrada.
-- `ClientSupportFlow` controla as quatro etapas do formulário do cliente.
+- `ElevatorModelViewer` e `Elevator2DViewer` (em `src/components/elevator/`) expõem o diagrama vetorial técnico (máquina de tração, polias, cabos, freios safeties, quadro de controle, guias, contrapeso, cabine, portas, sensores e amortecedores) e a lista interativa de regiões inspecionadas.
+- `OperatorShiftClosed` e `OperatorShiftLanding` apresentam a experiência de controle de turno e registro de ponto do operador João Carlos.
+- `ClientSupportFlow` controla as etapas do formulário assistido do cliente, gerando o payload por `src/utils/clientSupport.js`.
 - `useDialogFocus` posiciona o foco, mantém Tab no diálogo, fecha com Escape e devolve o foco ao elemento anterior.
 
 Ao criar um componente, mantenha uma responsabilidade clara, receba dados por props, use HTML semântico e estilize com tokens. Estado que interessa apenas ao componente fica local; ocorrências compartilhadas sempre passam pelo store.
 
-## 6. Estado compartilhado e estabilidade
+## 6. Estado compartilhado e sincronização em tempo real
 
 `operationStore.js` mantém um cache de snapshot e uma representação JSON. `useOperationState` usa `useSyncExternalStore`, que exige que o snapshot permaneça referencialmente estável enquanto nada mudou. Essa combinação evita cascatas de renderização e eventos repetidos.
 
 Uma gravação:
 
 1. lê o snapshot atual;
-2. ignora a operação se ocorrências e turno não mudaram;
+2. ignora a operação se ocorrências, preventivas e turno não mudaram;
 3. atualiza o cache antes do armazenamento;
 4. grava uma vez no `localStorage`;
 5. dispara `hop-operation-updated` uma vez;
-6. transmite o estado atualizado para o Firebase Realtime Database (`broadcastOperationState`) caso configurado.
+6. transmite o estado atualizado via `BroadcastChannel` (`broadcastOperationState` em `src/data/realtimeSync.js`) para sincronização imediata entre abas abertas no navegador.
 
-A assinatura escuta o evento de janela `hop-operation-updated`, o evento `storage` (para abas no mesmo computador) e o listener em tempo real do Firebase (`onValue`), permitindo sincronização instantânea entre múltiplos dispositivos físicos (Notebook, Tablet e Smartphone) sem a necessidade de um backend dedicado.
+A assinatura escuta o evento de janela `hop-operation-updated`, o evento nativo `storage` e o canal `BroadcastChannel` (`hop_realtime_sync`), permitindo demonstrar Cliente, Central e Operador simultaneamente sem depender de servidores externos ou chaves de API.
 
-## 7. Sincronização em tempo real (Firebase Realtime Database)
-
-O HOP suporta sincronização multidispositivo em tempo real gerenciada pelo Firebase Realtime Database (`src/config/firebase.js` e `src/data/firebaseSync.js`).
-
-- **Variáveis de ambiente:** Configuradas no arquivo `.env.local` e nas configurações de variáveis de ambiente da Vercel.
-- **Resiliência:** Caso as chaves do Firebase não estejam configuradas ou a rede caia, a aplicação opera silenciosamente no modo local utilizando `localStorage`.
-- **Reset síncrono:** Ao clicar em “Restaurar dados de demonstração”, o estado da sessão na nuvem também é resetado (`resetRemoteOperationState`), voltando todas as telas conectadas para o estado inicial da demonstração simultaneamente.
-
-## 8. localStorage
+## 7. localStorage
 
 | Chave | Conteúdo |
 | --- | --- |
-| `hop-shared-operation-v5` | versão, horário, estado do turno do Operator e lista única de ocorrências |
+| `hop-shared-operation-v5` | versão, horário, estado/eventos de turno do Operator, preventivas e lista única de ocorrências |
 | `hop-theme` | `light` ou `dark` |
 
-O estado é lido na inicialização do hook e gravado apenas por `addOperationOccurrence`, `updateOperationOccurrence`, `writeOperationState` ou `resetOperationState`. Não edite o JSON manualmente durante a aplicação aberta.
+O estado é lido na inicialização do hook e gravado apenas pelas funções públicas de `operationStore.js`. Não edite o JSON manualmente durante a aplicação aberta.
 
-“Restaurar dados de demonstração”, na Home, chama `resetOperationState`, recria os mocks e remove chaves antigas das versões anteriores. A preferência de tema é preservada. Se dados antigos causarem incompatibilidade, use esse botão ou remova apenas `hop-shared-operation-v1` nas ferramentas do navegador e recarregue.
+“Restaurar dados de demonstração” chama `resetOperationState`, recria os mocks e propaga o estado inicial para todas as abas abertas. A preferência de tema é preservada.
 
 ## 8. Mock data
 
@@ -178,163 +186,83 @@ Adicione em `occurrences` um ID e referências válidas de elevador/cliente/téc
 
 `calculatePriority`, em `priorityScore.js`, começa em 5 pontos e considera passageiros presos, risco à vida, hospital/instalação crítica, elevador parado ou falha parcial, tempo aberto e reincidência. O resultado é limitado a 0–100 e inclui motivos legíveis.
 
-Classificação: 0–29 baixa, 30–54 atenção, 55–79 alta e 80–100 crítica. Alterar um peso afeta ordenação no Operator, fila/indicadores do Control; portanto mantenha os limites coerentes com os tokens de gravidade.
+Classificação: 0–29 baixa, 30–54 atenção, 55–79 alta e 80–100 crítica. Alterar um peso afeta ordenação no Operator e fila/indicadores do Control; portanto mantenha os limites coerentes com os tokens de gravidade.
 
-## 10. Despacho e status
+## 10. Despacho, equipes e status
 
-`recommendTechnician` filtra apenas disponíveis e ordena por uma pontuação demonstrativa: menor distância, especialidade aderente e bônus de região. Resgate recebe maior peso quando há passageiro preso. Para o cenário principal, João Carlos é coerentemente recomendado.
+`recommendTechnician` filtra apenas disponíveis e ordena por uma pontuação demonstrativa: menor distância, especialidade aderente e bônus de região. Resgate recebe maior peso quando há passageiro preso. Para ocorrências que exigem ou recomendam atuação conjunta, `suggestOccurrenceTeam` e `occurrenceTeam.js` gerenciam a composição da equipe (líder responsável e técnicos de apoio).
 
-Status internos, centralizados em `OPERATION_STATUS`, preservam compatibilidade com registros antigos. O fluxo visual atual é:
+Status internos, centralizados em `OPERATION_STATUS`, preservam compatibilidade com registros antigos. O fluxo visual principal é:
 
-`Técnico atribuído` → `Em deslocamento` → `Em manutenção` → `Resolvido`.
-
-`operatorWorkflow.js` define três ações: **Aceitar ocorrência** aceita e inicia o deslocamento; **Cheguei ao local** encerra a rota e inicia manutenção/diagnóstico completo; **Finalizar atendimento** resolve, grava conclusão, duração, diagnóstico/solução e retorna ao início. `Aceito` e `No local` continuam reconhecidos apenas para dados legados, sem exigir cliques separados.
+`Técnico atribuído` → `Em deslocamento` → `Em manutenção` → `Resolvido` (com suporte ao estado `Aguardando peça` e retomada de atendimento).
 
 ### Turno do Operator
 
-`operatorShiftActive`, no mesmo estado de `operationStore.js`, é alterado por `updateOperatorShift` e persistido em `hop-shared-operation-v1`. `OperatorPage.jsx` oculta shell e conteúdo operacional quando o turno é encerrado e renderiza `OperatorShiftClosed.jsx`; iniciar o turno restaura a interface sem resetar ocorrências ou histórico. O Control interpreta João Carlos como indisponível enquanto o turno estiver encerrado.
+`operatorShiftActive` e `shiftEvents`, no mesmo estado de `operationStore.js`, são gerenciados por `updateOperatorShift`, `registerOperatorShiftEvent` e `shiftSchedule.js`. `OperatorPage.jsx` oculta shell e conteúdo operacional quando o turno está encerrado e renderiza `OperatorShiftClosed.jsx`; iniciar o turno restaura a interface sem perder ocorrências ou histórico. O Control interpreta João Carlos como indisponível enquanto o turno estiver encerrado.
 
-Na tela encerrada, `HopLogo` procura automaticamente `src/assets/logos/hop-operator-shift-logo.png`, destinada ao contraste em fundo claro. Enquanto esse arquivo opcional não existir, usa `hop-operator-logo.png` como fallback sem quebrar o build.
-
-## 11. Mapa operacional e geolocalização real
+## 11. Mapa operacional e geolocalização
 
 O mapa operacional utiliza **Leaflet** com tiles oficiais do **OpenStreetMap** (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`), 100% livre, público e sem marca d'água.
 
-`LeafletMap.jsx` renderiza a malha geográfica da Grande São Paulo com suporte nativo a tema claro e escuro (via filtro CSS invertido nos tiles), marcadores semânticos em SVG para cada categoria de cliente (Hospitais, Shoppings, Hotéis, Condomínios e Prédios Comerciais), status dots ao vivo para técnicos (Disponível, Em Deslocamento, Em Atendimento, Indisponível) e escudos de alerta com pulso de radar para ocorrências críticas.
+`LeafletMap.jsx` renderiza a malha geográfica da Grande São Paulo com suporte nativo a tema claro e escuro (via filtro CSS nos tiles), marcadores semânticos em SVG para cada categoria de cliente (Hospitais, Shoppings, Hotéis, Condomínios e Prédios Comerciais), status dots ao vivo para técnicos e escudos de alerta com pulso para ocorrências críticas.
 
-`geoCoordinates.js` centraliza as latitudes e longitudes reais dos estabelecimentos e técnicos pela cidade. `buildGeoRoute(start, end)` calcula a rota ao longo dos eixos viários. O Operator (`RouteMap.jsx`) enquadra a rota automaticamente (`map.fitBounds`) e oferece suporte a geolocalização real do navegador (`navigator.geolocation`).
+`geoCoordinates.js` centraliza as latitudes e longitudes dos estabelecimentos e técnicos pela cidade. `buildGeoRoute(start, end)` calcula a rota ao longo dos eixos viários. O Operator (`RouteMap.jsx`) enquadra a rota automaticamente (`map.fitBounds`) e oferece suporte a geolocalização do navegador (`navigator.geolocation`).
 
-## 12. Visualização 2D/3D e Modelos por Equipamento
+## 12. Visualização Esquema Técnico 2D e Regiões do Elevador
 
-O ecossistema HOP disponibiliza visualização híbrida 2D esquemática e 3D wireframe interativa (Three.js), com suporte à associação e persistência de modelos 3D por equipamento (`elevatorId`) via **IndexedDB** (`hop-elevator-models` / store `models`).
+O ecossistema HOP disponibiliza visualização técnica 2D esquemática vetorial (`Elevator2DViewer.jsx`) e inspeção estruturada de regiões (`ElevatorModelViewer.jsx`), alimentadas pelas definições de subsistemas em `src/data/elevatorRegions.js` e traduções em `src/utils/modelNameTranslator.js` via `ElevatorModelContext.jsx`:
 
-### Escopo e Persistência (`ElevatorModelScope`)
-A arquitetura não utiliza um provider global de modelos em `App.jsx`. Em vez disso, o contexto é instanciado pontualmente onde o elevador está ativo através do componente `<ElevatorModelScope elevatorId={id}>`:
-- **No HOP Operator (`OperatorServicePage.jsx`):** o escopo é provido com `occurrence.elevatorId`, carregando automaticamente o modelo vinculado àquele chamado.
-- **No HOP Control (`ControlElevatorDetailModal.jsx`):** a aba "Modelo 3D & Componentes" instancia o escopo com o `elevator.id` do equipamento inspecionado.
+- **No HOP Operator (`OperatorServicePage.jsx`):** o técnico visualiza o diagrama vetorial responsivo a temas claro/escuro e inspeciona as regiões suspeitas apontadas pela triagem.
+- **No HOP Control (`ControlElevatorDetailModal.jsx`):** a ficha operacional do elevador apresenta três abas (**Resumo**, **Histórico** em timeline expansível e **Esquema 2D**) além de exportação de relatório para impressão A4.
 
-### Formatos e Processamento de Peças
-O sistema aceita arquivos nos formatos `.glb`, `.gltf`, `.fbx` e `.obj` de até 150 MB. Ao carregar um modelo:
-1. O Three.js percorre a cena (`extractParts`), identificando malhas e geometrias cilíndricas.
-2. `modelNameTranslator.js` traduz os nomes de nós de engenharia/CAD para português humanizado.
-3. Regiões dinâmicas são agrupadas heuristicamente (`buildDynamicRegions`) e correlacionadas às hipóteses e diagnósticos da triagem.
-4. Sincronização em tempo real entre abas e escopos é realizada por eventos customizados (`hop:elevator-model-changed`) e sinalizadores em `localStorage`.
+## 13. Logos e Fotos de Perfil
 
-### Ficha Operacional de Elevadores (HOP Control)
-No HOP Control, cada card de elevador é interativo e abre a ficha operacional completa (`ControlElevatorDetailModal.jsx`) com três visões principais:
-1. **Resumo:** KPIs do equipamento (estado, reincidência, último chamado), grupos de identificação em duas colunas e especificações técnicas.
-2. **Histórico:** Timeline cronológica de ocorrências com botão expansível acessível (`aria-expanded`), destacando diagnóstico, peças, primeira visita, duração e liberação.
-3. **Modelo 3D:** Visualizador 3D escopado com gestão de upload, substituição ou exclusão de modelo para aquele elevador.
+As logos oficiais ficam em `public/hop-logo.png` e `src/assets/logos/`. Mantendo os mesmos nomes, podem ser substituídas sem alterar imports.
 
-## 13. Logos e Home
-
-Os quatro PNGs oficiais ficam em `src/assets/logos`. Mantendo os mesmos nomes, eles podem ser substituídos sem alterar imports. A pasta também pode receber `hop-operator-shift-logo.png`, versão opcional com “OPERATOR” azul para a tela de turno encerrado; sua presença é detectada automaticamente e a logo normal é o fallback. Não aplique filtros, recortes, fundos ou distorção; o CSS usa `object-fit: contain` sobre fundo transparente. Cada logo lateral é link para o início do próprio módulo; a Home mostra somente `hop-logo.png`.
-
-`HomePage.jsx` contém a logo principal, os três cards, links e reset. Os estilos ficam principalmente em `components.css`.
-
-### Fotos de perfil / ProfileAvatar
-
-`ProfileAvatar.jsx` é o único componente responsável por fotos de pessoas. Ele recebe nome, caminho, categoria e tamanho (`sm`, `md` ou `lg`), mantém as iniciais como fallback e oculta a imagem quando o arquivo público não carrega. As fotos ficam em `public/assets/profiles/operators`, `leadership` ou `clients`; não existem imports estáticos, portanto arquivos ausentes não quebram o build.
-
-`profileAvatar.js` normaliza nomes, remove acentos e gera caminhos PNG como `/assets/profiles/operators/joao-carlos.png`. Técnicos recebem `avatar` em `mockData.js`; responsáveis de clientes recebem `contactAvatar`; Fernanda e Mariana usam o mesmo helper em seus arquivos de apresentação. Consulte `GUIA_FOTOS_PERFIL.md` para a lista completa de nomes e caminhos.
+`ProfileAvatar.jsx` é o único componente responsável por fotos de pessoas. Ele recebe nome, caminho, categoria e tamanho (`sm`, `md` ou `lg`), mantém as iniciais como fallback e oculta a imagem quando o arquivo público não carrega. As fotos ficam em `public/assets/profiles/operators`, `leadership` ou `clients`.
 
 ## 14. Design system e tema
 
-`tokens.css` define cores, espaços, raios, sombras e superfícies do mapa. Marca: `#252D7A`, `#3F5BD8`, `#F8FAFC`, `#D8DEE8`, `#1E293B`. Gravidade: `#2EC4B6`, `#EAB308`, `#F59E0B`, `#DC2626`. Cores de gravidade são semânticas; não são decoração da marca. Para alterar espaçamento, ajuste a escala curta `--space-1` a `--space-7`; componentes não devem criar outra escala paralela.
+`tokens.css` define cores, espaços, raios, sombras e superfícies do mapa. Marca: `#252D7A`, `#3F5BD8`, `#F8FAFC`, `#D8DEE8`, `#1E293B`. Gravidade: `#2EC4B6`, `#EAB308`, `#F59E0B`, `#DC2626`.
 
-O seletor `[data-theme="dark"]` sobrescreve somente tokens, inclusive os `--map-*`, sem duplicar folhas de componentes. `ThemeContext` usa o valor salvo; sem valor manual, respeita `prefers-color-scheme` e acompanha a mudança do sistema. Para adaptar um componente, use variáveis como `--color-background`, `--color-surface`, `--color-text`, `--color-border` e seus equivalentes semânticos; não escreva cores de tema diretamente no componente.
+O seletor `[data-theme="dark"]` sobrescreve somente tokens, inclusive os `--map-*`, sem duplicar folhas de componentes. `ThemeContext` usa o valor salvo; sem valor manual, respeita `prefers-color-scheme`.
 
-`global.css` guarda a base transversal. `components.css` concentra as estruturas realmente compartilhadas: `.app-card`, `.section-heading`, badges, métricas e shells laterais. `control.css`, `operator.css` e `client.css` devem conter apenas diferenças de cada experiência; `map.css` contém exclusivamente a representação da cidade. Antes de criar uma regra nova, verifique se uma classe compartilhada ou utilidade do Bootstrap já resolve o caso.
+`global.css` guarda a base transversal. `components.css` concentra as estruturas compartilhadas: `.app-card`, `.section-heading`, badges, métricas e shells laterais. `control.css`, `operator.css`, `client.css` e `about.css` contêm as regras específicas de cada experiência; `map.css` contém exclusivamente a representação do mapa.
 
-## Boas práticas para manter o projeto limpo
-
-- reutilize componente, `.app-card`, shell ou token antes de criar uma variante;
-- não adicione HEX fora de `tokens.css` quando a cor fizer parte do tema;
-- reutilize os breakpoints existentes antes de abrir outra media query;
-- mantenha status em `operationStore.js` e prioridade em `priorityScore.js`;
-- preserve inline apenas valores realmente dinâmicos, como coordenadas e barras;
-- remova imports, regras e arquivos antigos ao substituir uma implementação.
-
-## 15. Responsividade e acessibilidade
-
-O CSS é mobile-first. Nos três módulos, a navegação lateral vira drawer em telas menores e fica fixa a partir de 768px. No Operator, mapa/diagnóstico ficam lado a lado em 992px durante o deslocamento e empilham abaixo disso; após a chegada, o diagnóstico ocupa a área principal sem GPS. O Control amplia sua grade e coloca mapa/lista lado a lado em 1100px.
-
-Áreas de toque têm aproximadamente 42–48px, foco é visível, ícones relevantes são acompanhados por texto e gravidade nunca depende apenas de cor. `prefers-reduced-motion` reduz transições. Ao criar layout, teste 375, 768, 1024, 1280 e 1366px e evite largura fixa no conteúdo.
-
-## 16. Alterar menus e criar páginas
-
-- A estrutura, logo, perfil e drawer comuns ficam em `ModuleSidebar.jsx`; cada shell fornece sua lista de links.
-- Control: itens em `ControlShell.jsx`; conteúdo/rota em `ControlPage.jsx`.
-- Operator: itens em `OperatorShell.jsx`; conteúdo/rota/turno em `OperatorPage.jsx`.
-
-Passo a passo: crie o componente em `pages/<módulo>`, importe na página raiz, registre a condição de rota, adicione o link ao shell e use os tokens/estruturas já existentes. Não crie uma segunda fonte de ocorrências.
-
-## 17. Onde eu altero cada coisa?
+## 15. Onde eu altero cada coisa?
 
 | Quero alterar | Onde mexer |
 | --- | --- |
-| Logos | `src/assets/logos/` e `src/components/HopLogo.jsx` |
-| Fotos de perfil e fallback | `public/assets/profiles/`, `src/components/ProfileAvatar.jsx`, `src/utils/profileAvatar.js` e `GUIA_FOTOS_PERFIL.md` |
-| Cor principal/dark mode | `src/styles/tokens.css` |
-| Espaçamento, raios e sombras | `src/styles/tokens.css` |
+| Logos | `public/hop-logo.png`, `src/assets/logos/` e `src/components/HopLogo.jsx` |
+| Fotos de perfil e fallback | `public/assets/profiles/`, `src/components/ProfileAvatar.jsx` e `src/utils/profileAvatar.js` |
+| Cor principal / dark mode / tokens | `src/styles/tokens.css` |
 | Card, badge, shell ou cabeçalho compartilhado | `src/styles/components.css` |
 | João Carlos | `src/data/mockData.js` (`TEC-010`) e `src/data/operatorData.js` |
 | Técnicos, clientes, elevadores, ocorrências | `src/data/mockData.js` |
 | Prioridade | `src/utils/priorityScore.js` |
-| Despacho | `src/utils/dispatchRecommendation.js` |
-| Status compartilhados/reset | `src/data/operationStore.js` |
-| Turno do João Carlos | `src/data/operationStore.js`, `src/pages/OperatorPage.jsx`, `src/components/operator/OperatorShiftClosed.jsx` |
+| Despacho e equipes | `src/utils/dispatchRecommendation.js` e `src/utils/occurrenceTeam.js` |
+| Status compartilhados / reset | `src/data/operationStore.js` e `src/data/realtimeSync.js` |
+| Turno e ponto do Operator | `src/utils/shiftSchedule.js`, `src/pages/OperatorPage.jsx`, `src/components/operator/OperatorShiftPanel.jsx` |
 | Fluxo de atendimento do Operator | `src/utils/operatorWorkflow.js`, `src/pages/OperatorPage.jsx`, `src/pages/operator/OperatorServicePage.jsx` |
 | Cidade, pontos e rota | `src/data/geoCoordinates.js` |
-| Interação visual do mapa | `src/components/LeafletMap.jsx`, `src/styles/map.css` |
-| Visualização 2D/3D e modelos | `src/context/ElevatorModelContext.jsx`, `src/components/operator/ElevatorModelViewer.jsx`, `src/components/operator/Elevator3DViewer.jsx`, `src/components/operator/ModelUploadPanel.jsx` |
-| Ficha de elevadores (Control) | `src/components/control/ControlElevatorDetailModal.jsx`, `src/pages/control/ControlElevators.jsx` |
-| Estrutura comum das sidebars | `src/components/ModuleSidebar.jsx`, `src/styles/components.css` |
-| Itens dos menus Operator/Control | respectivos `src/components/*/*Shell.jsx` |
-| Home | `src/pages/HomePage.jsx`, `src/styles/components.css` |
+| Interação visual do mapa | `src/components/LeafletMap.jsx` e `src/styles/map.css` |
+| Esquema técnico 2D e regiões | `src/components/elevator/ElevatorModelViewer.jsx`, `src/components/elevator/Elevator2DViewer.jsx`, `src/data/elevatorRegions.js` |
+| Ficha de elevadores (Control) | `src/components/control/ControlElevatorDetailModal.jsx` e `src/pages/control/ControlElevators.jsx` |
+| Relatórios para impressão A4 | `src/utils/controlReports.js`, `src/utils/partRequestReport.js` e `src/utils/reportPrint.js` |
+| Diagramas UML (Fase 7) | `docs/diagramas/diagrama_classes.puml` e `docs/diagramas/diagrama_sequencia.puml` |
+| Estrutura comum das sidebars | `src/components/ModuleSidebar.jsx` e `src/styles/components.css` |
+| Itens dos menus Client/Operator/Control | respectivos `src/components/*/*Shell.jsx` |
+| Home e Apresentação | `src/pages/HomePage.jsx` e `src/pages/AboutPage.jsx` |
 | Tema e persistência | `src/context/ThemeContext.jsx` |
 
-## 18. Build e deploy
+## 16. Build, testes e deploy
 
 ```bash
 npm install
 npm run dev
 npm run build
 npm run preview
+node --test tests/*.test.mjs
 ```
 
-O build gera `dist/`. Para deploy estático, publique o conteúdo dessa pasta e configure o host para servir `index.html`. Como as rotas usam hash, não é necessário rewrite de URLs internas. Não há backend, variáveis secretas ou serviços externos obrigatórios.
-
-## 19. Problemas comuns
-
-- **Dependência ausente:** execute `npm install` na raiz.
-- **Porta ocupada:** o Vite informa outra URL; abra a URL exibida ou encerre o processo antigo.
-- **Dados antigos:** use “Restaurar dados de demonstração”.
-- **Mapa sem pontos:** confirme IDs iguais entre `mockData.js` e `geoCoordinates.js`; o fallback mantém o atendimento legível.
-- **Logo ausente:** confirme nome e extensão exatos em `src/assets/logos`.
-- **Build falhando:** leia o primeiro erro de import/caminho, corrija e execute `npm run build` novamente.
-
-## 20. Glossário
-
-- **Front-end:** parte visual executada no navegador.
-- **React:** biblioteca que compõe a interface em componentes.
-- **JavaScript / JSX:** linguagem do projeto e sintaxe que mistura marcação com JavaScript.
-- **Componente:** bloco reutilizável de interface; **props** são seus dados de entrada.
-- **State:** dado mutável que provoca renderização; **render/re-render** é a criação/atualização visual.
-- **Context / Provider:** mecanismo que disponibiliza valor a uma árvore; aqui sustenta o tema.
-- **Hook:** função React reutilizável. O projeto usa `useState`, `useEffect`, `useMemo`, `useCallback`, `useRef` e `useSyncExternalStore`.
-- **Event listener / cleanup:** observação de um evento e sua remoção ao desmontar, evitando duplicação.
-- **Rota / hash routing:** caminho que seleciona uma tela usando o fragmento `#` da URL.
-- **Mock data:** dados fictícios usados sem banco real.
-- **localStorage / JSON:** armazenamento do navegador e formato textual dos dados persistidos.
-- **CSS / variável CSS / design token:** estilo, valor reutilizável e decisão semântica de design.
-- **Breakpoint / responsividade / mobile-first:** largura de adaptação, capacidade de responder à tela e criação começando por telas pequenas.
-- **Bootstrap:** base de classes de layout e controles.
-- **SVG:** desenho vetorial; usado na representação esquemática do elevador.
-- **Coordenadas:** pares x/y que posicionam itens na cidade fictícia.
-- **Pointer Events:** API que unifica mouse, toque e caneta no mapa.
-- **Vite / build:** ferramenta de desenvolvimento e geração dos arquivos otimizados.
-- **npm / package.json / dependência:** gerenciador, manifesto de scripts/pacotes e biblioteca externa instalada.
-- **Import / export:** conexão entre arquivos JavaScript.
-- **API:** interface de programação; o projeto usa APIs nativas do navegador, sem API paga.
-- **Backend:** servidor e persistência central; não existe neste MVP.
+O build gera `dist/`. Para deploy estático (ex.: Vercel), publique o conteúdo dessa pasta e configure o host para servir `index.html`. Como as rotas usam hash, não é necessário rewrite de URLs internas. Não há backend obrigatório, variáveis secretas ou serviços externos pagos.

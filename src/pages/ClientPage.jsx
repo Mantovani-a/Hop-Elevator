@@ -15,7 +15,7 @@ import {
 } from '../data/clientData';
 import { OPERATION_STATUS, addOperationOccurrence } from '../data/operationStore';
 import useOperationState from '../hooks/useOperationState';
-import { buildClientOccurrencePayload } from '../services/clientSupportService';
+import { buildClientOccurrencePayload } from '../utils/clientSupport';
 import { navigateTo } from '../utils/navigation';
 import { preventiveStatus } from '../utils/preventivePlanning';
 

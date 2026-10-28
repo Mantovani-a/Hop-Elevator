@@ -1,11 +1,11 @@
 /**
- * Shared elevator region definitions — single source of truth for both the 2D
- * schematic panel and the 3D wireframe viewer.
+ * Definições compartilhadas das regiões técnicas do elevador — fonte única de verdade
+ * para o painel esquemático 2D e inspeção de subsistemas.
  *
- * Each region carries:
- *  - id:        internal key used in suspectedRegions arrays
- *  - label:     user-friendly name shown to the operator
- *  - meshNames: exact node names inside sistema_de_elevador.glb
+ * Cada região possui:
+ *  - id:        chave interna usada nos arrays de suspectedRegions
+ *  - label:     nome legível exibido para a operação e o técnico
+ *  - meshNames: identificadores técnicos dos componentes traduzidos por modelNameTranslator
  */
 export const elevatorRegions = [
   { id: 'machine', label: 'Máquina de Tração', meshNames: ['Maquinario_Elevador', 'Apoio_Tração', 'Ponte_Tração1'] },

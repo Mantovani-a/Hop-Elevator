@@ -5,8 +5,8 @@ import { ModuleIcon } from '../ModuleSidebar';
 import { getLocationIconName } from '../../utils/locationIcon';
 import { displayStatus, formatDate, formatDateTime, statusToneClass } from '../../utils/presentation';
 import { OPERATION_STATUS } from '../../data/operationStatus';
-import { ElevatorModelScope, useElevatorModel } from '../../context/ElevatorModelContext';
-import ElevatorModelViewer from '../operator/ElevatorModelViewer';
+import { ElevatorModelScope } from '../../context/ElevatorModelContext';
+import ElevatorModelViewer from '../elevator/ElevatorModelViewer';
 import { compatibleParts, componentRecurrences } from '../../data/technicalIntelligence';
 import useOperationState from '../../hooks/useOperationState';
 import { preventiveStatus } from '../../utils/preventivePlanning';
@@ -55,8 +55,8 @@ function SummaryTabIcon() {
 }
 
 function ModelLinkStatus() {
-  const { modelUrl, isDefaultModel, restoredFromDB } = useElevatorModel();
-  return <p className="control-model-link-status">{!restoredFromDB ? 'Verificando associação do modelo…' : isDefaultModel ? 'Modelo 3D padrão disponível' : modelUrl ? 'Modelo 3D vinculado a este elevador' : 'Nenhum modelo 3D vinculado'}</p>;
+
+  return <p className="control-model-link-status">Esquema técnico 2D disponível para inspeção</p>;
 }
 
 export default function ControlElevatorDetailModal({
@@ -201,7 +201,7 @@ export default function ControlElevatorDetailModal({
           aria-selected={activeTab === '3d'}
           onClick={() => setActiveTab('3d')}
         >
-          <ModuleIcon name="building" size={17} /> Modelo 3D
+          <ModuleIcon name="building" size={17} /> Esquema 2D
         </button>
       </nav>
 

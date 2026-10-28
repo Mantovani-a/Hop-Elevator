@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import OperatorStateMessage from '../../components/operator/OperatorStateMessage';
 import OperatorCompletionForm from '../../components/operator/OperatorCompletionForm';
-import ElevatorModelViewer from '../../components/operator/ElevatorModelViewer';
+import ElevatorModelViewer from '../../components/elevator/ElevatorModelViewer';
 import PriorityIndicator from '../../components/operator/PriorityIndicator';
 import RouteMap from '../../components/operator/RouteMap';
 import TechnicalInfoPanel from '../../components/operator/TechnicalInfoPanel';

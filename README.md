@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/assets/logos/hop-logo.png" alt="HOP" width="380">
+  <img src="public/hop-logo.png" alt="HOP" width="380">
 </p>
 
 # HOP — ecossistema de atendimento a elevadores
@@ -26,12 +26,12 @@ Falhas de elevadores têm contextos e riscos diferentes — de funcionamento par
 | Módulo | Público | Visão principal |
 | --- | --- | --- |
 | **HOP Client** | Clientes e Estabelecimentos | Monitoramento de elevadores em tempo real, abertura guiada de chamados com triagem de risco e acompanhamento de status. |
-| **HOP Control** | Lideranças e Operação | Central operacional com mapa, fila, técnicos, ficha detalhada de elevadores com modelo 3D, registro de ocorrências e indicadores. |
-| **HOP Operator** | Técnicos de campo | Turno, fila priorizada, rota, diagnóstico técnico, representação 2D/3D interativa e fluxo de atendimento. |
+| **HOP Control** | Lideranças e Operação | Central operacional com mapa, fila, técnicos, equipes, ficha detalhada de elevadores com esquema técnico 2D, relatórios A4 e indicadores. |
+| **HOP Operator** | Técnicos de campo | Turno, fila priorizada, rota, diagnóstico técnico, representação esquemática 2D interativa e fluxo de atendimento. |
 
 ## Fluxo integrado
 
-**Cliente registra chamado no Client (ou Central abre)** → **HOP calcula a prioridade por risco** → **Control organiza e despacha técnico** → **Operator recebe rota e diagnóstico** → **atendimento é concluído** → **os três módulos refletem a resolução em tempo real**.
+**Cliente registra chamado no Client (ou Central abre)** → **HOP calcula a prioridade por risco** → **Control organiza e despacha técnico/equipe** → **Operator recebe rota e diagnóstico** → **atendimento é concluído** → **os três módulos refletem a resolução em tempo real**.
 
 Todos os módulos leem e atualizam a mesma base operacional no navegador. O cenário principal de campo usa o operador João Carlos.
 
@@ -39,24 +39,25 @@ Todos os módulos leem e atualizam a mesma base operacional no navegador. O cen�
 
 - portal do cliente com status dos elevadores em tempo real e abertura assistida de chamados com triagem de risco;
 - priorização por contexto operacional, passageiros presos, risco, local crítico (ex.: hospitais), condição do elevador, tempo e reincidência;
-- recomendação e atribuição demonstrativa de técnico por proximidade e especialidade;
-- ciclo completo do chamado, da abertura à resolução, com três ações operacionais no Operator;
+- recomendação e atribuição demonstrativa de técnico ou equipe por proximidade e especialidade;
+- ciclo completo do chamado, da abertura à resolução, com fluxo de atendimento e solicitação de peças no Operator;
 - mapa operacional interativo da Grande São Paulo com OpenStreetMap e Leaflet, rota em tempo real, filtros e marcadores semânticos;
-- diagnóstico preliminar/completo e representação 2D/3D interativa com Three.js e modelos vinculados por equipamento;
-- ficha operacional de elevadores no HOP Control com resumo técnico, histórico em timeline expansível e visualizador 3D escopado;
-- dashboards, filas, histórico e sincronização em tempo real entre os três módulos;
-- turno e tema claro/escuro persistentes, com navegação lateral responsiva nos três módulos;
+- diagnóstico preliminar/completo e representação esquemática 2D vetorial com inspeção de subsistemas e regiões do elevador;
+- ficha operacional de elevadores no HOP Control com resumo técnico, histórico em timeline expansível, esquema técnico 2D e impressão de relatórios;
+- dashboards, filas, histórico e sincronização nativa em tempo real entre abas dos três módulos;
+- controle de turno e tema claro/escuro persistentes, com navegação lateral responsiva nos três módulos;
 - restauração discreta dos dados originais para repetir a demonstração.
 
 ## Tecnologias
 
-- React 19 e JavaScript;
-- Three.js para renderização 3D wireframe e suporte a múltiplos formatos (.glb, .gltf, .fbx, .obj);
+- React 19 e JavaScript (ESM);
+- SVG vetorial responsivo para representação esquemática 2D dos subsistemas do elevador;
 - Leaflet e OpenStreetMap (geolocalização operacional sem custos);
-- HTML semântico e CSS responsivo;
+- HTML semântico e CSS responsivo com Design Tokens;
 - Bootstrap 5;
-- Vite;
-- APIs nativas do navegador (IndexedDB para armazenamento de modelos 3D por equipamento, `localStorage`, Geolocation, Web Audio e Pointer Events).
+- Vite 7;
+- APIs nativas do navegador (`BroadcastChannel` e `localStorage` para sincronização em tempo real, Geolocation, Web Audio e Pointer Events);
+- PlantUML para modelagem de Diagrama de Classes e Diagrama de Sequência (`docs/diagramas/`).
 
 O mapa utiliza Leaflet com tiles públicos e oficiais do OpenStreetMap, sem necessidade de chaves de API pagas ou cartão de crédito.
 
@@ -79,19 +80,28 @@ npm run preview
 ## Estrutura resumida
 
 ```text
+docs/
+└── diagramas/        # diagramas UML de classes e sequência (.puml)
+public/               # favicon, logo pública e diretórios de avatares
 src/
-├── assets/       # logos oficiais
-├── components/   # componentes globais e dos dois módulos
-├── context/      # tema da aplicação
-├── data/         # mocks, estado compartilhado e mapa
-├── hooks/        # assinaturas de estado e acessibilidade
-├── pages/        # páginas e roteamento interno dos módulos
-├── styles/       # tokens, estilos compartilhados e ajustes responsivos por módulo
-└── utils/        # prioridade, despacho, fluxo e apresentação
+├── assets/logos/     # logos oficiais dos módulos e apresentação
+├── components/
+│   ├── client/       # componentes exclusivos do HOP Client
+│   ├── control/      # componentes exclusivos do HOP Control
+│   ├── elevator/     # visualizador técnico 2D e inspeção de regiões (compartilhado)
+│   ├── operator/     # componentes exclusivos do HOP Operator
+│   └── *.jsx         # componentes globais (Modal, Sidebar, LeafletMap, etc.)
+├── context/          # tema da aplicação e contexto técnico de regiões do elevador
+├── data/             # mocks, estado compartilhado, sincronização e mapa
+├── hooks/            # assinaturas de estado, foco e tela cheia
+├── pages/            # páginas e roteamento interno dos módulos
+├── styles/           # tokens, estilos compartilhados e ajustes responsivos por módulo
+└── utils/            # prioridade, despacho, equipes, turno, triagem e relatórios
+tests/                # testes automatizados de regras operacionais e relatórios
 ```
 
 Detalhes de arquitetura e manutenção estão em [DOCUMENTACAO_TECNICA.md](DOCUMENTACAO_TECNICA.md).
 
 ## Dados demonstrativos
 
-Técnicos, clientes, ocorrências, endereços, coordenadas, códigos, diagnósticos, ETA e cidade são fictícios ou simulados para apresentação acadêmica. Não há backend, GPS em tempo real, IA ou especificações técnicas oficiais de equipamentos OTIS neste MVP.
+Técnicos, clientes, ocorrências, endereços, coordenadas, códigos, diagnósticos, ETA e cidade são fictícios ou simulados para apresentação acadêmica. Não há backend externo obrigatório, GPS comercial pago, IA ou especificações técnicas oficiais de equipamentos OTIS neste MVP.
