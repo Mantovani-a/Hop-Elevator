@@ -1,28 +1,19 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState } from 'react';
 import { useElevatorModel } from '../../context/ElevatorModelContext';
 import ModelUploadPanel from './ModelUploadPanel';
-
-const Elevator3DViewer = lazy(() => import('./Elevator3DViewer'));
+import Elevator2DViewer from './Elevator2DViewer';
 
 /**
- * Elevator model viewer that supports client-uploaded 3D models.
- *
- * - When no model is loaded: shows the upload panel
- * - When a model is loaded: shows the 2D region panel (dynamically built from
- *   the model's parts) and the 3D wireframe viewer with tabs to switch
+ * Visualizador técnico do elevador (Fase 7 - Esquema Vetorial e Regiões).
  */
 export default function ElevatorModelViewer({ diagnosis, severity, canManage = false }) {
   const { modelUrl = null, dynamicRegions = [], displayNameMap = {}, restoredFromDB = true } = useElevatorModel() || {};
   const suspectedRegions = diagnosis?.suspectedRegions || [];
   const initialRegion = suspectedRegions[0] || (dynamicRegions?.[0]?.id ?? '');
   const [selectedRegion, setSelectedRegion] = useState(initialRegion);
-  const [viewMode, setViewMode] = useState('3d');
+  const [viewMode, setViewMode] = useState('esquema');
 
-  // Use dynamic regions from the uploaded model
   const regions = dynamicRegions || [];
-
-  // Re-export for external consumers (OperatorServicePage)
-  // They now get dynamic regions via context
 
   return (
     <section className={`app-card elevator-model-card elevator-model-card--${severity}`} aria-labelledby="elevator-model-title">
@@ -30,7 +21,7 @@ export default function ElevatorModelViewer({ diagnosis, severity, canManage = f
         <div>
           <p className="page-header__subtitle">Representação esquemática</p>
           <h2 className="fs-5" id="elevator-model-title">
-            {!modelUrl ? 'Modelo 3D do elevador' : viewMode === '2d' ? 'Modelo 2D do elevador' : 'Modelo 3D do elevador'}
+            Esquema Técnico do Elevador
           </h2>
         </div>
         {modelUrl && (
@@ -39,84 +30,73 @@ export default function ElevatorModelViewer({ diagnosis, severity, canManage = f
       </div>
 
       {canManage && <ModelUploadPanel />}
-      {!canManage && !modelUrl && <div className="elevator-model-empty" role="status">
-        <span className="elevator-model-empty__icon" aria-hidden="true">◇</span>
-        <h3>{restoredFromDB ? 'Modelo 3D não disponível' : 'Buscando modelo do elevador…'}</h3>
-        <p>{restoredFromDB ? 'Este elevador ainda não possui um modelo 3D vinculado pela Central de Operações.' : 'Aguarde enquanto verificamos o vínculo deste equipamento.'}</p>
-        <small>O modelo auxilia na visualização dos componentes e não é obrigatório para o atendimento.</small>
-      </div>}
 
-      {/* Only show tabs and content when a model is loaded */}
-      {modelUrl && (
+      <div className="elevator-model-tabs" role="tablist" aria-label="Alternar visualização">
+        <button
+          className={`elevator-model-tab${viewMode === 'esquema' ? ' is-active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={viewMode === 'esquema'}
+          onClick={() => setViewMode('esquema')}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+            <line x1="5" y1="6" x2="11" y2="6" stroke="currentColor" strokeWidth="1.2"/>
+            <line x1="5" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.2"/>
+          </svg>
+          Esquema Técnico
+        </button>
+        <button
+          className={`elevator-model-tab${viewMode === 'regioes' ? ' is-active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={viewMode === 'regioes'}
+          onClick={() => setViewMode('regioes')}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          Regiões Inspecionadas
+        </button>
+      </div>
+
+      {viewMode === 'esquema' ? (
         <>
-          <div className="elevator-model-tabs" role="tablist" aria-label="Alternar entre modelo 2D e 3D">
-            <button
-              className={`elevator-model-tab${viewMode === '2d' ? ' is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={viewMode === '2d'}
-              onClick={() => setViewMode('2d')}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none"/><line x1="5" y1="6" x2="11" y2="6" stroke="currentColor" strokeWidth="1.2"/><line x1="5" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.2"/></svg>
-              Modelo 2D
-            </button>
-            <button
-              className={`elevator-model-tab${viewMode === '3d' ? ' is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={viewMode === '3d'}
-              onClick={() => setViewMode('3d')}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="none"/><line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" strokeWidth="1" opacity="0.5"/><line x1="2" y1="4.5" x2="14" y2="4.5" stroke="currentColor" strokeWidth="1" opacity="0.5"/></svg>
-              Modelo 3D Wireframe
-            </button>
+          <p className="elevator-model-card__intro">
+            Diagrama vetorial dos subsistemas da cabine, tração, freios safeties e sensores de pavimento.
+          </p>
+          <Elevator2DViewer status={severity?.toUpperCase() || 'OK'} />
+        </>
+      ) : (
+        <>
+          <p className="elevator-model-card__intro">
+            Selecione uma região para relacioná-la à hipótese preliminar da triagem.
+          </p>
+          <div className="elevator-model-stage">
+            <div className="elevator-2d-region-list" aria-label="Lista de regiões inspecionadas">
+              {regions.length === 0 ? (
+                <p className="elevator-model-card__intro">Nenhuma região específica sinalizada.</p>
+              ) : (
+                regions.map((region) => (
+                  <button
+                    className={`elevator-2d-region-item${suspectedRegions.includes(region.id) ? ' is-suspected' : ''}${selectedRegion === region.id ? ' is-selected' : ''}`}
+                    type="button"
+                    key={region.id}
+                    aria-pressed={selectedRegion === region.id}
+                    onClick={() => setSelectedRegion(region.id)}
+                  >
+                    <span className="elevator-2d-region-item__label">{region.label}</span>
+                    <span className="elevator-2d-region-item__parts">
+                      {region.meshNames.map((name) => (
+                        <span key={name} className="elevator-2d-region-item__part">{displayNameMap[name] || name}</span>
+                      ))}
+                    </span>
+                    {suspectedRegions.includes(region.id) && <i className="elevator-2d-region-item__badge" aria-label="Relacionado à hipótese preliminar">!</i>}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-
-          {viewMode === '2d' ? (
-            <>
-              <p className="elevator-model-card__intro">Selecione uma região para relacioná-la à hipótese inicial da triagem.</p>
-
-              <div className="elevator-model-stage">
-                <div className="elevator-2d-region-list" aria-label="Lista de regiões do modelo importado">
-                  {regions.length === 0 ? (
-                    <p className="elevator-model-card__intro">Carregando regiões do modelo…</p>
-                  ) : (
-                    regions.map((region) => (
-                      <button
-                        className={`elevator-2d-region-item${suspectedRegions.includes(region.id) ? ' is-suspected' : ''}${selectedRegion === region.id ? ' is-selected' : ''}`}
-                        type="button"
-                        key={region.id}
-                        aria-pressed={selectedRegion === region.id}
-                        onClick={() => setSelectedRegion(region.id)}
-                      >
-                        <span className="elevator-2d-region-item__label">{region.label}</span>
-                        <span className="elevator-2d-region-item__parts">
-                          {region.meshNames.map((name) => (
-                            <span key={name} className="elevator-2d-region-item__part">{displayNameMap[name] || name}</span>
-                          ))}
-                        </span>
-                        {suspectedRegions.includes(region.id) && <i className="elevator-2d-region-item__badge" aria-label="Relacionado à hipótese preliminar">!</i>}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="elevator-model-card__intro">Interaja com o modelo 3D. Os destaques indicam regiões suspeitas que necessitam de verificação técnica.</p>
-              <Suspense fallback={
-                <div className="elevator-3d-viewer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="elevator-3d-loader">
-                    <div className="elevator-3d-loader__spinner" />
-                    <span>Carregando visualizador 3D…</span>
-                  </div>
-                </div>
-              }>
-                <Elevator3DViewer diagnosis={diagnosis} severity={severity} />
-              </Suspense>
-            </>
-          )}
         </>
       )}
     </section>
