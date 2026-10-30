@@ -2,12 +2,15 @@ import { useState } from 'react';
 import HopLogo from '../components/HopLogo';
 import ThemeToggle from '../components/ThemeToggle';
 import FullscreenButton from '../components/FullscreenButton';
-import SyncStatusBadge from '../components/SyncStatusBadge';
+import { ModuleIcon } from '../components/ModuleSidebar';
 import { resetOperationState } from '../data/operationStore';
+import '../styles/home.css';
 
 const experiences = [
   {
     key: 'control',
+    icon: 'chart',
+    image: 'hop-control-bg.png',
     number: '01',
     name: 'HOP Control',
     audience: 'Lideranças e operação',
@@ -15,6 +18,8 @@ const experiences = [
   },
   {
     key: 'operator',
+    icon: 'tool',
+    image: 'hop-operator-bg.png',
     number: '02',
     name: 'HOP Operator',
     audience: 'Técnicos de campo',
@@ -22,12 +27,22 @@ const experiences = [
   },
   {
     key: 'client',
+    icon: 'building',
+    image: 'hop-client-bg.png',
     number: '03',
     name: 'HOP Client',
     audience: 'Clientes e estabelecimentos',
     description: 'Status dos elevadores em tempo real e abertura assistida de chamados.',
   },
 ];
+
+function ArrowIcon({ diagonal = false }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={diagonal ? 'M6 18 18 6M6 6h12v12' : 'M5 12h14m-6-6 6 6-6 6'} />
+    </svg>
+  );
+}
 
 export default function HomePage() {
   const [restored, setRestored] = useState(false);
@@ -44,42 +59,55 @@ export default function HomePage() {
   };
 
   return (
-    <main className="home-selector">
-      <div className="home-selector__theme"><FullscreenButton /><ThemeToggle /></div>
-      <section className="container hop-container home-selector__content" aria-labelledby="experiences-title">
-        <HopLogo size="home" />
-        <div className="home-selector__heading">
-          <h1 id="experiences-title">Escolha uma experiência</h1>
+    <main
+      className="home-selector"
+      style={{ '--home-background': `url("${import.meta.env.BASE_URL}hop-background.png")` }}
+    >
+      <header className="home-selector__header">
+        <a></a>
+        <div className="home-selector__theme"><FullscreenButton /><ThemeToggle /></div>
+      </header>
+
+      <section className="home-selector__content" aria-label="Módulos HOP">
+        <div className="home-selector__hero">
+          <HopLogo size="home" />
+          <p className="home-selector__subtitle">Gestão, operação e atendimento de elevadores em uma única plataforma.</p>
           <a className="home-about-link" href="#/sobre">
             <span>Conheça o projeto</span>
             <strong>Sobre a HOP</strong>
-            <span className="home-about-link__arrow" aria-hidden="true">↗</span>
+            <span className="home-about-link__arrow"><ArrowIcon /></span>
           </a>
         </div>
-        <div className="row g-4 mt-4 w-100 justify-content-center">
+
+        <nav className="home-selector__modules" aria-label="Escolha um módulo HOP">
           {experiences.map((experience) => (
-            <div className="col-12 col-md-6 col-lg-4" key={experience.key}>
-              <article className="app-card p-4 d-flex flex-column align-items-start h-100">
-                <div className="d-flex w-100 align-items-center justify-content-between gap-2">
-                  <span className="experience-index fw-bold text-primary" style={{ letterSpacing: '0.08em', fontSize: '0.75rem' }} aria-hidden="true">{experience.number}</span>
+            <article className={`home-module home-module--${experience.key}`} key={experience.key}>
+              <a
+                className="home-module__link"
+                href={`#/${experience.key}`}
+                aria-label={`Acessar ${experience.name}`}
+                style={{ '--module-image': `url("${import.meta.env.BASE_URL}${experience.image}")` }}
+              >
+                <div className="home-module__top">
+                  <span className="home-module__icon"><ModuleIcon name={experience.icon} size={29} /></span>
+                  <span className="home-module__open"><ArrowIcon diagonal /></span>
                 </div>
-                <span className="text-primary fw-bold text-uppercase mt-3" style={{ fontSize: '0.75rem' }}>{experience.audience}</span>
-                <h2 className="my-2 fs-4">{experience.name}</h2>
-                <p className="text-secondary mb-4">{experience.description}</p>
-                <a className="btn btn-primary w-100 mt-auto" href={`#/${experience.key}`}>
-                  Acessar {experience.name}
-                </a>
-              </article>
-            </div>
+                <p className="home-module__audience"><span>{experience.number}</span>{experience.audience}</p>
+                <h2>{experience.name}</h2>
+                <p className="home-module__description">{experience.description}</p>
+                <span className="home-module__action">Acessar {experience.name}<ArrowIcon /></span>
+              </a>
+            </article>
           ))}
-        </div>
-        <div className="d-flex flex-column align-items-center gap-2 mt-4">
-          <SyncStatusBadge />
-          <button className={`home-reset-action${restored ? ' text-success fw-bold' : ''}`} type="button" onClick={restoreDemoData}>
-            {restored ? '✓ Dados de demonstração restaurados com sucesso!' : 'Restaurar dados de demonstração'}
-          </button>
-        </div>
+        </nav>
       </section>
+
+      <footer className="home-selector__footer">
+        <button className="home-reset-action" type="button" onClick={restoreDemoData}>
+          Restaurar dados de demonstração
+        </button>
+        <span className="home-selector__feedback" role="status">{restored ? 'Dados de demonstração restaurados com sucesso!' : ''}</span>
+      </footer>
     </main>
   );
 }

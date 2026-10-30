@@ -3,18 +3,6 @@ import SettingsButton from '../SettingsButton';
 import NotificationCenter from '../NotificationCenter';
 import HopLogo from '../HopLogo';
 import OperatorShiftLanding from './OperatorShiftLanding';
-import { subscribeSyncStatus } from '../../data/realtimeSync';
-
-function OperatorConnectionStatus() {
-  const [syncStatus, setSyncStatus] = useState({ configured: false, connected: false });
-
-  useEffect(() => subscribeSyncStatus(setSyncStatus), []);
-
-  const state = !syncStatus.configured ? 'local' : syncStatus.connected ? 'connected' : 'connecting';
-  const label = state === 'local' ? 'Modo Local' : state === 'connected' ? 'Central Conectada' : 'Conectando à central';
-
-  return <span className={`operator-shift-closed__sync is-${state}`} role="status"><span className="operator-shift-closed__sync-dot" aria-hidden="true" />{label}</span>;
-}
 
 function OperatorLiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -65,7 +53,6 @@ export default function OperatorShiftClosed({
         </div>
         <div className="operator-shift-closed__meta">
           <OperatorLiveClock />
-          <OperatorConnectionStatus />
           <NotificationCenter module="operator" recipientId={technician.id} />
           <SettingsButton />
         </div>

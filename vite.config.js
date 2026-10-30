@@ -5,6 +5,7 @@ export default defineConfig({
   assetsInclude: ['**/*.glb', '**/*.gltf', '**/*.fbx', '**/*.obj'],
   plugins: [react()],
   build: {
+    outDir: 'dist',
     rollupOptions: {
       output: {
         manualChunks: {
